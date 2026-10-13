@@ -1,0 +1,17 @@
+{
+  "name": "lapampa-prototipo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Primer prototipo de sistema de información web para La Pampa Gastrobar",
+  "scripts": {
+    "instalar": "npm install && npm install --prefix api && npm install --prefix web",
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev --prefix api\" \"npm run dev --prefix web\"",
+    "test": "npm test --prefix api && npm test --prefix web",
+    "lint": "npm run lint --prefix api && npm run lint --prefix web",
+    "format": "prettier --write \"api/src/**/*.js\" \"api/tests/**/*.js\" \"web/src/**/*.{js,jsx,css}\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.4.2"
+  }
+}
