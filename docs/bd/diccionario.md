@@ -30,7 +30,7 @@ Personal que entra al sistema (HU01). El cliente de domicilios **no** es usuario
 | creado_en | DATETIME | No | | Fecha de creación |
 
 ## categoria
-Secciones de la carta (HU02).
+Secciones de la carta (HU02). `seed.sql` carga las 17 de la carta real de La Pampa (Pa' aguaitar, Sudaos, Viche La Pampa…); "Metále dulcesito" queda inactiva hasta que haya postres.
 
 | Campo | Tipo | Nulo | Llave | Descripción |
 |---|---|---|---|---|
@@ -40,7 +40,7 @@ Secciones de la carta (HU02).
 | activa | BOOLEAN | No | | Si se muestra en la carta |
 
 ## producto
-Productos de la carta (HU02). No se borran: se desactivan, para no romper pedidos viejos.
+Productos de la carta (HU02). `seed.sql` carga los 58 de la carta real; las presentaciones con distinto precio (botella, caneca o shot de viche; jugo en agua o en leche) son productos separados. No se borran: se desactivan, para no romper pedidos viejos.
 
 | Campo | Tipo | Nulo | Llave | Descripción |
 |---|---|---|---|---|
