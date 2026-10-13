@@ -1,43 +1,97 @@
-/* Base mobile-first: se diseña para el celular y se amplía en pantallas grandes. */
+/* =====================================================================
+   Identidad visual de La Pampa Gastro Bar — tomada de su carta.
+   Mobile-first: se diseña para el celular y se amplía en pantallas grandes.
+   ===================================================================== */
 :root {
-  --verde: #1f3b2d;
-  --crema: #f6f1e7;
-  --texto: #1d1d1b;
-  --suave: #6b6b63;
-  --borde: #e2dccf;
-  --bien: #2e8b57;
-  --mal: #c0392b;
-  --espera: #c9a227;
-  --radio: 14px;
-  --tactil: 48px; /* tamaño mínimo de botones para usar con una mano */
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--texto);
+  /* Paleta de la carta */
+  --mostaza: #e8b95e;      /* fondo de las páginas de bebidas y encabezados */
+  --crema: #efe6bd;        /* fondo de las páginas de comida */
+  --papel: #faf5e1;        /* superficies claras (tarjetas, campos) */
+  --cafe: #4a3418;         /* títulos y texto principal */
+  --cafe-suave: #7a5f36;   /* texto secundario, descripciones */
+  --linea: #d9c995;        /* bordes y separadores */
+  /* Estados (mesas, domicilios, mensajes) */
+  --hoja: #4e6a2e;         /* libre / confirmado — verde hoja de plátano */
+  --achiote: #a63d25;      /* por cobrar / error */
+  --dorado: #b9852c;       /* ocupada / en proceso */
+
+  --titulo: 'Playfair Display', Georgia, serif;
+  --texto: 'Montserrat', system-ui, sans-serif;
+  --radio: 16px;
+  --tactil: 48px;          /* tamaño mínimo de toque para usar con una mano */
+
+  font-family: var(--texto);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--cafe);
   background: var(--crema);
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100dvh; }
-h1, h2 { margin: 0; line-height: 1.2; }
+h1, h2, h3 { margin: 0; font-family: var(--titulo); font-weight: 900; line-height: 1.15; }
+p { margin: 0; }
+a { color: var(--cafe); font-weight: 600; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--cafe); outline-offset: 2px; }
 
-.pagina { max-width: 560px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
-.encabezado { background: var(--verde); color: var(--crema); border-radius: var(--radio); padding: 24px 20px; }
-.encabezado h1 { font-size: 1.6rem; }
-.sobretitulo { margin: 0 0 4px; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.8; }
+/* ---------- Estructura ---------- */
+.pagina { max-width: 560px; margin: 0 auto; padding: 0 16px 32px; display: grid; gap: 20px; }
 
-.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: var(--radio); padding: 18px; }
-.tarjeta h2 { font-size: 1rem; margin-bottom: 12px; }
+/* Encabezado: la franja mostaza con el sello del logo, como la carta */
+.franja {
+  background: var(--mostaza);
+  margin: 0 -16px;
+  padding: 20px 16px;
+  display: flex; align-items: center; gap: 16px;
+}
+.sello {
+  width: 72px; height: 72px; flex: none;
+  border-radius: 50%; background: var(--crema);
+  display: grid; place-items: center;
+}
+.sello img { width: 58px; height: 58px; mix-blend-mode: multiply; }
+.franja h1 { font-size: 1.75rem; color: var(--cafe); }
+.franja p { font-weight: 500; color: var(--cafe); font-size: 0.95rem; }
 
-.estado { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.estado li { display: flex; align-items: center; gap: 10px; min-height: var(--tactil); font-size: 1rem; }
+/* Títulos de sección: Playfair espaciado, como "PA' AGUAITAR" en la carta */
+.seccion-titulo {
+  font-family: var(--titulo); font-weight: 900; font-size: 1.05rem;
+  letter-spacing: 0.14em; text-transform: uppercase; text-align: center;
+  color: var(--cafe); margin-bottom: 12px;
+}
+
+.bloque { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 18px; }
+
+/* ---------- Lista estilo carta: nombre ..... precio ---------- */
+.carta { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.carta-linea { display: flex; align-items: baseline; gap: 6px; font-weight: 700; }
+.carta-linea .relleno { flex: 1; border-bottom: 2px dotted var(--cafe-suave); transform: translateY(-4px); min-width: 16px; }
+.carta-linea .precio { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.carta small { display: block; color: var(--cafe-suave); font-size: 0.85rem; font-weight: 400; margin-top: 2px; }
+
+/* ---------- Estados ---------- */
+.estado { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.estado li { display: flex; align-items: center; gap: 12px; min-height: var(--tactil); font-weight: 500; }
 .punto { width: 12px; height: 12px; border-radius: 50%; flex: none; }
-.punto.bien { background: var(--bien); }
-.punto.mal { background: var(--mal); }
-.punto.espera { background: var(--espera); }
+.punto.bien { background: var(--hoja); }
+.punto.mal { background: var(--achiote); }
+.punto.espera { background: var(--dorado); }
 
-.sprints { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.sprints li { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--crema); }
-.sprints span { color: var(--suave); font-size: 0.95rem; }
+.chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; color: var(--papel); }
+.chip.libre { background: var(--hoja); }
+.chip.ocupada { background: var(--dorado); }
+.chip.por-cobrar { background: var(--achiote); }
+
+/* ---------- Botones ---------- */
+.boton {
+  min-height: var(--tactil); padding: 0 20px; border-radius: 999px; border: 2px solid var(--cafe);
+  font: 600 1rem var(--texto); cursor: pointer; background: var(--cafe); color: var(--papel);
+}
+.boton.secundario { background: transparent; color: var(--cafe); }
+
+.nota { font-size: 0.85rem; color: var(--cafe-suave); text-align: center; }
 
 @media (min-width: 768px) {
-  .pagina { padding: 32px; }
-  .encabezado h1 { font-size: 2rem; }
+  .franja { margin: 0; border-radius: 0 0 var(--radio) var(--radio); padding: 24px; }
+  .franja h1 { font-size: 2.2rem; }
 }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

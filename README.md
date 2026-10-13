@@ -45,8 +45,8 @@ npm run instalar                 # instala la raíz, /api y /web
 cp api/.env.example api/.env     # en Windows: copy api\.env.example api\.env
 # editar api/.env con el usuario y la contraseña de MySQL
 
-npm run db:prueba --prefix api   # crea la base "lapampa" con datos de prueba
-#  (o: npm run db:init --prefix api   -> solo datos iniciales, sin productos ni mesas)
+npm run db:prueba --prefix api   # crea la base "lapampa" con la carta real y 3 mesas de ejemplo
+#  (o: npm run db:init --prefix api   -> carta real y usuarios, sin mesas)
 
 npm run dev                      # levanta API (puerto 3000) y web (puerto 5173)
 ```
@@ -58,6 +58,10 @@ Abrir http://localhost:5173: debe decir **API funcionando** y **Base de datos co
 **Usuarios de prueba** (contraseña `LaPampa2026*`): `propietario`, `cajero`, `mesero`. Se cambian antes de usar el sistema en el local.
 
 > ⚠️ `db:init` y `db:prueba` **borran** la base `lapampa` y la crean de nuevo.
+
+## Estilo visual
+
+Tomado de la carta de La Pampa: mostaza `#E8B95E`, crema `#EFE6BD`, café `#4A3418`, títulos en **Playfair Display Black** y textos en **Montserrat** (servidas desde el proyecto con @fontsource). Las listas de productos usan los puntos guía de la carta (`Chumblún ..... $23.000`). La guía viva está en http://localhost:5173/estilo y las variables en `web/src/index.css`.
 
 ## Comandos
 

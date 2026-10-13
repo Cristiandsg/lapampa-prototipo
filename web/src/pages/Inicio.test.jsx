@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import Inicio from './Inicio';
 
 vi.mock('../services/api', () => ({
@@ -8,7 +9,11 @@ vi.mock('../services/api', () => ({
 
 describe('Inicio', () => {
   it('muestra el estado de la API y de la base de datos', async () => {
-    render(<Inicio />);
+    render(
+      <MemoryRouter>
+        <Inicio />
+      </MemoryRouter>,
+    );
     expect(await screen.findByText(/API funcionando/i)).toBeInTheDocument();
     expect(screen.getByText(/Base de datos conectada/i)).toBeInTheDocument();
   });
