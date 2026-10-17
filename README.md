@@ -81,6 +81,8 @@ Tomado de la carta de La Pampa: mostaza `#E8B95E`, crema `#EFE6BD`, café `#4A34
 - **Versiones:** al cerrar cada sprint se etiqueta `v0.1`, `v0.2`, `v0.3` y `v1.0`, y se publica en la nube.
 - **Backlog:** en Jira. El ID de la historia (HU01–HU15) va en la rama, el commit y el PR.
 - Paso a paso del flujo con Git y VS Code: [docs/guia-git.md](docs/guia-git.md).
+- Backlog con criterios y subtareas: [docs/backlog.md](docs/backlog.md) · Requisitos: [docs/requisitos.md](docs/requisitos.md).
+- **Claude Code:** el contexto del proyecto está en [CLAUDE.md](CLAUDE.md); para implementar una historia usa `/historia HU03`.
 
 ## Despliegue en la nube
 
