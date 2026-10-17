@@ -19,6 +19,8 @@ erDiagram
     PEDIDO ||--o| PROPINA : "genera"
     PEDIDO ||--o| DOMICILIO : "se entrega como"
     CLIENTE ||--o{ DOMICILIO : "solicita"
+    PEDIDO ||--o{ TRABAJO_IMPRESION : "se imprime en"
+    USUARIO ||--o{ TRABAJO_IMPRESION : "solicita"
 
     ROL {
         tinyint id PK
@@ -116,5 +118,15 @@ erDiagram
         varchar motivo
         int usuario_id FK
         datetime creado_en
+    }
+    TRABAJO_IMPRESION {
+        bigint id PK
+        enum tipo "comanda | ajuste_comanda | cuenta | comprobante"
+        enum impresora "cocina | caja"
+        int pedido_id FK
+        text contenido
+        enum estado "pendiente | impreso | error"
+        tinyint intentos
+        int solicitado_por FK
     }
 ```

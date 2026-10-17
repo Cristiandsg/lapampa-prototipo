@@ -28,6 +28,7 @@ Celular (navegador)  ──►  /web  React + Vite  (Vista)
 | `web/src/pages` | Pantallas |
 | `web/src/services` | Llamadas a la API |
 | `docs/bd` | [MER](docs/bd/mer.md) y [diccionario de datos](docs/bd/diccionario.md) |
+| `agente-impresion/` (Sprint 3) | Programa que corre en el PC de la caja y envía comandas y cuentas a las 2 impresoras térmicas USB (HU16) |
 
 ## Requisitos
 

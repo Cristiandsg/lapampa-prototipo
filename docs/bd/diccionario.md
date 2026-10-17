@@ -2,7 +2,7 @@
 
 Base de datos: `lapampa` (MySQL 8, InnoDB, `utf8mb4_unicode_ci`). Script: [`api/db/schema.sql`](../../api/db/schema.sql). Diagrama: [MER](mer.md).
 
-Son 12 tablas: las 11 entidades del documento de Scrum más `historial_cambio`, que se agregó para cumplir la trazabilidad (RNF-06).
+Son 13 tablas: las 11 entidades del documento de Scrum, más `historial_cambio` para la trazabilidad (RNF-06) y `trabajo_impresion` para la impresión de comandas y cuentas (HU16).
 
 **Convenciones:** PK = llave primaria · FK = llave foránea · UK = valor único · todas las fechas en hora de Colombia (UTC-5), guardadas por el servidor.
 
@@ -171,3 +171,21 @@ Trazabilidad (RNF-06): quién cambió qué y cuándo.
 | motivo | VARCHAR(150) | Sí | | Obligatorio al quitar un producto ya enviado a cocina |
 | usuario_id | INT UNSIGNED | Sí | FK → usuario | Quién lo hizo; vacío si fue el cliente desde la web |
 | creado_en | DATETIME | No | | Cuándo |
+
+## trabajo_impresion
+Cola de impresión (HU16). La API crea un trabajo cada vez que hay algo que imprimir; el **agente de impresión** que corre en el PC de la caja lo toma y lo envía a la impresora térmica correspondiente (ESC/POS).
+
+| Campo | Tipo | Nulo | Llave | Descripción |
+|---|---|---|---|---|
+| id | BIGINT UNSIGNED | No | PK | Identificador |
+| tipo | ENUM | No | | `comanda`, `ajuste_comanda`, `cuenta` o `comprobante` |
+| impresora | ENUM | No | | `cocina` o `caja` |
+| pedido_id | INT UNSIGNED | No | FK → pedido | Pedido al que corresponde |
+| contenido | TEXT | No | | Texto de la tirilla, ya armado por la API |
+| estado | ENUM | No | | `pendiente`, `impreso` o `error` |
+| intentos | TINYINT UNSIGNED | No | | Veces que el agente intentó imprimirlo |
+| ultimo_error | VARCHAR(255) | Sí | | Motivo del último fallo (impresora apagada, sin papel…) |
+| solicitado_por | INT UNSIGNED | Sí | FK → usuario | Quién lo generó o pidió reimprimir; vacío si viene del formulario web |
+| creado_en / impreso_en | DATETIME | — | | Cuándo se pidió y cuándo salió |
+
+Si una impresora está apagada, el trabajo queda `pendiente` y sale cuando vuelve: no se pierde ni se duplica. La tirilla de caja se titula "Cuenta" o "Comprobante de pago"; **no** es factura electrónica (fuera del alcance).

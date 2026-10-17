@@ -213,3 +213,25 @@ CREATE TABLE historial_cambio (
   CONSTRAINT fk_historial_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id),
   INDEX ix_historial_entidad (entidad, entidad_id)
 ) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------------------
+-- 8. Cola de impresión (HU16)
+--    La API crea los trabajos; el agente de impresión del PC de la caja
+--    los toma y los envía a la impresora térmica de cocina o de caja.
+-- ---------------------------------------------------------------------
+CREATE TABLE trabajo_impresion (
+  id              BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  tipo            ENUM('comanda','ajuste_comanda','cuenta','comprobante') NOT NULL,
+  impresora       ENUM('cocina','caja') NOT NULL,
+  pedido_id       INT UNSIGNED NOT NULL,
+  contenido       TEXT NOT NULL,              -- texto de la tirilla ya armado por la API
+  estado          ENUM('pendiente','impreso','error') NOT NULL DEFAULT 'pendiente',
+  intentos        TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ultimo_error    VARCHAR(255) NULL,
+  solicitado_por  INT UNSIGNED NULL,          -- quién lo generó o pidió reimprimir; NULL = cliente web
+  creado_en       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  impreso_en      DATETIME NULL,
+  CONSTRAINT fk_impresion_pedido  FOREIGN KEY (pedido_id)      REFERENCES pedido(id),
+  CONSTRAINT fk_impresion_usuario FOREIGN KEY (solicitado_por) REFERENCES usuario(id),
+  INDEX ix_impresion_cola (estado, impresora, creado_en)
+) ENGINE=InnoDB;
