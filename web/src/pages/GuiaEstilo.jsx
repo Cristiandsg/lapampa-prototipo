@@ -7,7 +7,7 @@ const COLORES = [
   ['Papel', '--papel', '#FAF5E1', 'Tarjetas y campos'],
   ['Café', '--cafe', '#4A3418', 'Títulos, texto y botones'],
   ['Hoja', '--hoja', '#4E6A2E', 'Libre / confirmado'],
-  ['Dorado', '--dorado', '#B9852C', 'Ocupada / en proceso'],
+  ['Dorado', '--dorado', '#8A5F14', 'Ocupada / en proceso'],
   ['Achiote', '--achiote', '#A63D25', 'Por cobrar / error'],
 ];
 
