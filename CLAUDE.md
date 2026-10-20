@@ -56,7 +56,7 @@ Pendiente con el propietario: la Subienda tiene dos precios ($44.000 / $47.000);
 
 ## Estilo visual (tomado de la carta de La Pampa)
 
-Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, crema `#EFE6BD`, papel `#FAF5E1`, café `#4A3418` (texto y botones), hoja `#4E6A2E` (libre/confirmado), dorado `#B9852C` (ocupada/en proceso), achiote `#A63D25` (por cobrar/error). Títulos **Playfair Display Black** (secciones en mayúsculas espaciadas, como la carta); texto **Montserrat** (servidas con @fontsource). Componentes base: `Franja` (encabezado con el sello del logo) y `LineaCarta` (nombre ....... $23.000 — el sello de la carta; úsalo en toda lista de productos). Precios con formato `$23.000`. Botones de mínimo 48 px, pensados para usar con una mano. Los nombres de los platos son expresiones del Pacífico (Chumblún, Barajo, Oye vevé…): respétalos tal cual.
+Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, crema `#EFE6BD`, papel `#FAF5E1`, café `#4A3418` (texto y botones), hoja `#4E6A2E` (libre/confirmado), dorado `#8A5F14` (ocupada/en proceso), achiote `#A63D25` (por cobrar/error). Títulos **Playfair Display Black** (secciones en mayúsculas espaciadas, como la carta); texto **Montserrat** (servidas con @fontsource). Componentes base: `Franja` (encabezado con el sello del logo) y `LineaCarta` (nombre ....... $23.000 — el sello de la carta; úsalo en toda lista de productos). Precios con formato `$23.000`. Botones de mínimo 48 px, pensados para usar con una mano. Los nombres de los platos son expresiones del Pacífico (Chumblún, Barajo, Oye vevé…): respétalos tal cual.
 
 ## Forma de trabajo
 
@@ -71,12 +71,12 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 
 | Sprint | Historias | Estado |
 |---|---|---|
-| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-02 hecho (falta que Diana corra db:init). HT-01: configuración lista, falta crear las cuentas y publicar. HT-03: mockups hechos; falta revisarlos con el propietario y medir 3 noches de cierre de caja |
+| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-02 hecho (falta que Diana corra db:init). HT-01: publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven); falta que Esteban y Diana corran el proyecto local. HT-03: mockups hechos; falta revisarlos con el propietario y medir 3 noches de cierre de caja |
 | Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Por hacer |
 | Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Por hacer |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** terminar HT-01 en `feature/HT-01-despliegue-nube` (publicar `/api` y `/web` con HTTPS y que `GET /api/salud` responda desde un celular con datos móviles), luego Sprint 1 empezando por HU01.
+**Siguiente paso:** cerrar el Sprint 0 (revisión de mockups y línea base en el local) y empezar el Sprint 1 por HU01. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v4): trabajo de grado `Proyecto_Gastrobar_v4_limpio.docx` y `Scrum_LaPampa_Gastrobar_v4.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.

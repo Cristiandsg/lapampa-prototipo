@@ -34,8 +34,8 @@ Celular (navegador)  ──►  /web  React + Vite  (Vista)
 
 | | URL |
 |---|---|
-| Web | _pendiente (Vercel)_ |
-| API | _pendiente (Render)_ — `/api/salud` |
+| Web | https://lapampa-gastrobar.vercel.app |
+| API | https://lapampa-api.onrender.com/api/salud |
 
 Publicado con Vercel (web), Render (API) y Aiven (MySQL). Pasos y límites del plan gratuito en [docs/despliegue.md](docs/despliegue.md). La API gratuita se duerme tras 15 minutos sin uso y tarda cerca de un minuto en despertar.
 
