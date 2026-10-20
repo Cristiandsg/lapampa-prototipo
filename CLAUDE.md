@@ -9,7 +9,7 @@ Equipo: **Cristian David Silva Grueso** (Product Owner, frontend) · **Esteban A
 ## Decisiones de producto (no cambiar sin el PO)
 
 - **Web y mobile-first.** Meseros, cajero y propietario usan el **navegador del celular** (no hay tablets). El propietario también puede usar un computador. No hay app nativa.
-- **Publicado en la nube con HTTPS** (Vercel para `/web`, Render o Railway para `/api`, MySQL en Railway o Aiven): el cliente pide domicilios desde su casa.
+- **Publicado en la nube con HTTPS** (Vercel para `/web`, Render para `/api` con `render.yaml`, MySQL en Aiven con SSL; guía en `docs/despliegue.md`): el cliente pide domicilios desde su casa.
 - **Mesas con nombre libre.** No hay mesas fijas: el mesero crea las mesas de la jornada con el nombre que quiera ("Terraza 2", "Barra"). Nombre único solo entre mesas activas. Una mesa con pedido abierto no se elimina; eliminar = desactivar.
 - **Domicilios por dos vías:** formulario web público (cliente, sin cuenta) o el cajero registra los que llegan por llamada/WhatsApp en el mismo formulario (`canal`: `web` | `telefono_whatsapp`).
 - **Pago de domicilios:** contra entrega o **transferencia anticipada**. Si es transferencia, el domicilio queda en `pendiente_pago` y **no pasa a preparación** hasta que el cajero confirma el pago. Estados: `pendiente_pago → recibido → en_preparacion → en_camino → entregado` (+ `cancelado` con motivo). Solo avanzan en orden.
@@ -38,6 +38,7 @@ En el MVC, **la Vista es el cliente React**; la API Express contiene controlador
 npm run instalar                 # raíz + api + web
 npm run db:init --prefix api     # BORRA y crea la base 'lapampa' con la carta real (sin mesas)
 npm run db:prueba --prefix api   # igual + 3 mesas de ejemplo
+npm run db:nube --prefix api     # igual que db:init pero en Aiven (lee api/.env.nube)
 npm run dev                      # API :3000 + web :5173 (Vite redirige /api a :3000)
 npm test                         # pruebas API y web
 npm run lint                     # ESLint en api y web
@@ -70,7 +71,7 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 
 | Sprint | Historias | Estado |
 |---|---|---|
-| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-02 hecho. HT-01: falta publicar en la nube. HT-03: falta mockups en Figma y medir 3 noches de cierre de caja |
+| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-02 hecho (falta que Diana corra db:init). HT-01: configuración lista, falta crear las cuentas y publicar. HT-03: mockups hechos; falta revisarlos con el propietario y medir 3 noches de cierre de caja |
 | Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Por hacer |
 | Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Por hacer |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |

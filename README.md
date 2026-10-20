@@ -27,8 +27,17 @@ Celular (navegador)  ──►  /web  React + Vite  (Vista)
 | `api/db` | `schema.sql` (tablas), `seed.sql` (datos iniciales), `datos_prueba.sql` (opcional) |
 | `web/src/pages` | Pantallas |
 | `web/src/services` | Llamadas a la API |
-| `docs/bd` | [MER](docs/bd/mer.md) y [diccionario de datos](docs/bd/diccionario.md) |
+| `docs` | [Arquitectura](docs/arquitectura.md), [despliegue](docs/despliegue.md), [MER](docs/bd/mer.md) y [diccionario de datos](docs/bd/diccionario.md) |
 | `agente-impresion/` (Sprint 3) | Programa que corre en el PC de la caja y envía comandas y cuentas a las 2 impresoras térmicas USB (HU16) |
+
+## En la nube
+
+| | URL |
+|---|---|
+| Web | _pendiente (Vercel)_ |
+| API | _pendiente (Render)_ — `/api/salud` |
+
+Publicado con Vercel (web), Render (API) y Aiven (MySQL). Pasos y límites del plan gratuito en [docs/despliegue.md](docs/despliegue.md). La API gratuita se duerme tras 15 minutos sin uso y tarda cerca de un minuto en despertar.
 
 ## Requisitos
 
@@ -39,8 +48,8 @@ Celular (navegador)  ──►  /web  React + Vite  (Vista)
 ## Instalación (primera vez)
 
 ```bash
-git clone https://github.com/<usuario>/<repo>.git
-cd <repo>
+git clone https://github.com/Cristiandsg/lapampa-prototipo.git
+cd lapampa-prototipo
 npm run instalar                 # instala la raíz, /api y /web
 
 cp api/.env.example api/.env     # en Windows: copy api\.env.example api\.env
@@ -72,6 +81,7 @@ Tomado de la carta de La Pampa: mostaza `#E8B95E`, crema `#EFE6BD`, café `#4A34
 | `npm test` | Pruebas de la API (Jest + Supertest) y de la web (Vitest) |
 | `npm run lint` | Revisa el código con ESLint |
 | `npm run format` | Formatea con Prettier |
+| `npm run db:nube --prefix api` | Crea la base en la nube (Aiven) con los datos de `api/.env.nube` |
 
 ## Convenciones de trabajo
 
