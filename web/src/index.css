@@ -13,7 +13,7 @@
   /* Estados (mesas, domicilios, mensajes) */
   --hoja: #4e6a2e;         /* libre / confirmado — verde hoja de plátano */
   --achiote: #a63d25;      /* por cobrar / error */
-  --dorado: #b9852c;       /* ocupada / en proceso */
+  --dorado: #8a5f14;       /* ocupada / en proceso (contraste 4.5:1 con texto claro) */
 
   --titulo: 'Playfair Display', Georgia, serif;
   --texto: 'Montserrat', system-ui, sans-serif;
