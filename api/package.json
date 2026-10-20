@@ -10,7 +10,8 @@
     "test": "jest",
     "lint": "eslint .",
     "db:init": "node scripts/db-init.js",
-    "db:prueba": "node scripts/db-init.js --prueba"
+    "db:prueba": "node scripts/db-init.js --prueba",
+    "db:nube": "node scripts/db-init.js --nube"
   },
   "engines": {
     "node": ">=20"
