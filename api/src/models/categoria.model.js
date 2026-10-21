@@ -50,9 +50,15 @@ async function actualizar(id, { nombre, orden, activa }) {
   return obtenerPorId(id);
 }
 
+async function eliminar(id) {
+  const [resultado] = await pool.query('DELETE FROM categoria WHERE id = ?', [id]);
+  return resultado.affectedRows > 0;
+}
+
 module.exports = {
   listar,
   obtenerPorId,
   crear,
   actualizar,
+  eliminar,
 };

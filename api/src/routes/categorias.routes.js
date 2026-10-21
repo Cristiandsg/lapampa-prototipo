@@ -53,4 +53,11 @@ router.patch(
   categorias.actualizar
 );
 
+router.delete(
+  '/:id',
+  verificarToken,
+  permitirRoles('propietario'),
+  categorias.eliminar
+);
+
 module.exports = router;

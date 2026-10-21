@@ -40,8 +40,28 @@ async function actualizar(req, res, next) {
   }
 }
 
+async function eliminar(req, res, next) {
+  try {
+    const { id } = req.params;
+    const eliminada = await categoriaModel.eliminar(id);
+
+    if (!eliminada) {
+      return res.status(404).json({ error: 'Categoría no encontrada.' });
+    }
+
+    res.json({ mensaje: 'Categoría eliminada correctamente.' });
+  } catch (error) {
+    // Si hay una restricción de llave foránea (productos asociados)
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(400).json({ error: 'No se puede eliminar la categoría porque tiene productos asociados.' });
+    }
+    next(error);
+  }
+}
+
 module.exports = {
   listar,
   crear,
   actualizar,
+  eliminar,
 };

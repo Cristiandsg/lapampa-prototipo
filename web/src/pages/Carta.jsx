@@ -84,6 +84,35 @@ export default function Carta() {
     }
   }
 
+  // ELIMINAR CATEGORÍA
+  async function handleEliminarCategoria(idCategoria, nombreCategoria) {
+    const confirmar = window.confirm(`¿Estás seguro de que deseas eliminar la categoría "${nombreCategoria}"?\nNota: No debe tener productos asociados.`);
+    if (!confirmar) return;
+
+    const token = obtenerToken();
+    if (!token) return;
+
+    try {
+      const res = await fetch(`http://localhost:3000/api/categorias/${idCategoria}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        await fetchData();
+        alert(`La categoría "${nombreCategoria}" ha sido eliminada.`);
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error || 'No se pudo eliminar la categoría'}`);
+      }
+    } catch (err) {
+      console.error('Error al eliminar categoría:', err);
+      alert('Ocurrió un error al intentar eliminar la categoría.');
+    }
+  }
+
   // Crear Producto
   async function handleCrearProducto(e) {
     e.preventDefault();
@@ -136,7 +165,7 @@ export default function Carta() {
       });
 
       if (res.ok) {
-        await fetchData(); // Recargar lista de productos
+        await fetchData();
         alert(`El producto "${nombreProducto}" ha sido eliminado.`);
       } else {
         const data = await res.json();
@@ -164,7 +193,7 @@ export default function Carta() {
       });
 
       if (res.ok) {
-        await fetchData(); // Recargar la lista para reflejar el cambio
+        await fetchData();
       } else {
         const data = await res.json();
         alert(`Error al actualizar estado: ${data.error || 'No se pudo actualizar'}`);
@@ -183,9 +212,9 @@ export default function Carta() {
     <main className="pagina">
       <Encabezado titulo="Gestión de la Carta" />
 
-      {/* 1. Formulario para Crear Categoría */}
+      {/* 1. Formulario para Crear Categoría y Listado de Categorías Existentes */}
       <section className="seccion-formulario" style={{ marginBottom: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
-        <h3>1. Crear Categoría</h3>
+        <h3>1. Gestión de Categorías</h3>
         <form onSubmit={handleCrearCategoria} style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
           <input
             type="text"
@@ -199,6 +228,36 @@ export default function Carta() {
             Agregar Categoría
           </button>
         </form>
+
+        {/* Lista de categorías existentes con opción de eliminar */}
+        <div style={{ marginTop: '1.5rem' }}>
+          <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem', color: '#555' }}>Categorías registradas:</h4>
+          {categorias.length === 0 ? (
+            <p style={{ color: '#666', fontStyle: 'italic', fontSize: '0.9rem' }}>No hay categorías registradas.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {categorias.map((cat) => (
+                <li key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8f9fa', padding: '0.5rem 1rem', borderRadius: '4px' }}>
+                  <span>{cat.nombre}</span>
+                  <button
+                    onClick={() => handleEliminarCategoria(cat.id, cat.nombre)}
+                    style={{
+                      backgroundColor: '#e74c3c',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    Eliminar Categoría
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       {/* 2. Formulario para Crear Producto */}
@@ -297,7 +356,7 @@ export default function Carta() {
                   justifyContent: 'space-between', 
                   alignItems: 'center', 
                   marginBottom: '0.5rem',
-                  opacity: p.agotado_hoy ? 0.6 : 1, // Atenuar visualmente si está agotado
+                  opacity: p.agotado_hoy ? 0.6 : 1,
                   background: p.agotado_hoy ? '#f9f9f9' : '#fff',
                   padding: '0.5rem',
                   borderRadius: '4px'
@@ -311,7 +370,6 @@ export default function Carta() {
                   />
                 </div>
 
-                {/* Controles de Agotado y Eliminar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <input
