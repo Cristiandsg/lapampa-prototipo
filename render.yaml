@@ -1,0 +1,37 @@
+# Blueprint de Render para la API (HT-01).
+# En Render: New > Blueprint > elegir este repositorio. Los valores con sync: false
+# se escriben a mano en el panel de Render (no se suben a GitHub).
+services:
+  - type: web
+    name: lapampa-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: api
+    branch: develop
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/salud
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: lapampa
+      - key: DB_SSL
+        value: 'true'
+      - key: DB_SSL_CA
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRA
+        value: 12h
+      - key: CORS_ORIGEN
+        sync: false
