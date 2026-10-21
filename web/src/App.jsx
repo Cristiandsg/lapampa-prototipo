@@ -4,6 +4,7 @@ import RequiereSesion from './components/RequiereSesion';
 import Ingreso from './pages/Ingreso';
 import Panel from './pages/Panel';
 import Usuarios from './pages/Usuarios';
+import Carta from './pages/Carta';
 import Inicio from './pages/Inicio';
 import GuiaEstilo from './pages/GuiaEstilo';
 
@@ -29,6 +30,14 @@ export default function App() {
           element={
             <RequiereSesion roles={['propietario']}>
               <Usuarios />
+            </RequiereSesion>
+          }
+        />
+        <Route
+          path="/carta"
+          element={
+            <RequiereSesion roles={['propietario']}>
+              <Carta />
             </RequiereSesion>
           }
         />
