@@ -66,14 +66,14 @@ Como el proyecto todavía no tiene código, este sprint no entrega nada que el p
 *Como equipo de desarrollo, queremos tener los mockups de las pantallas principales validados con el propietario, para no construir interfaces que después haya que rehacer.*
 
 - **Épica:** — · **Puntos:** 3 · **Prioridad:** Media · **Responsable:** Cristian
-- **Criterio de aceptación clave:** Cristian, como PO, aprueba el flujo de toma de pedido, de cierre de cuenta y del formulario de domicilio después de revisarlo con el propietario, y queda registrada la línea base de las tres jornadas medidas.
+- **Criterio de aceptación clave:** Cristian, como PO, aprueba el flujo de toma de pedido, de cierre de cuenta y del formulario de domicilio después de revisarlo con el propietario, y queda documentada la línea base de la operación actual.
 
 **Subtareas**
 
-- [ ] Diseñar en Figma, pensadas primero para el celular (mobile-first), las pantallas de login, mesas, toma de pedido, caja, formulario público de domicilio, tablero de domicilios y reportes
+- [ ] Diseñar los mockups, pensados primero para el celular (mobile-first), las pantallas de login, mesas, toma de pedido, caja, formulario público de domicilio, tablero de domicilios y reportes
 - [ ] Definir el flujo de navegación según el rol (qué ve el mesero, el cajero y el propietario) y el del cliente, que entra sin cuenta
 - [ ] Revisar los mockups con el propietario en el local y anotar los cambios que pida
-- [ ] Medir la línea base en el local: cronometrar el cierre de caja durante tres noches y contar los pedidos y los errores de cobro de esas jornadas
+- [ ] Documentar la línea base: observación participante en el local (pedidos por jornada, errores de comanda y cobro, tiempo y forma del cierre de caja), confirmada con el propietario
 - [ ] Definir la paleta, la tipografía y el tamaño mínimo de botones para usar el sistema con una mano desde el celular
 
 ## Sprint 1: Acceso, carta, mesas y pedidos
@@ -151,7 +151,7 @@ Este sprint ataca el problema que más errores le genera hoy al gastrobar: los p
 
 **Objetivo:** Cerrar la cuenta de una mesa, registrar el pago y la propina, y que la venta quede lista para el cierre de caja.
 
-Según el propietario, hoy le dedica entre 30 y 45 minutos cada noche a cuadrar el Excel (el dato exacto sale de la línea base del Sprint 0). Con este sprint cada venta queda registrada en el momento del cobro, así que el cierre de caja pasa a ser una consulta. Corresponde a EP-03, más HU05 de EP-02, que se trabaja aquí porque modificar un pedido abierto y cerrarlo tocan la misma lógica.
+Hoy el cierre de caja toma unos 30 minutos cuando se hace: se cuenta el dinero y las propinas se cuadran a mano, y en las últimas jornadas ni siquiera se ha hecho (línea base del Sprint 0). Con este sprint cada venta queda registrada en el momento del cobro, así que el cierre de caja pasa a ser una consulta. Corresponde a EP-03, más HU05 de EP-02, que se trabaja aquí porque modificar un pedido abierto y cerrarlo tocan la misma lógica.
 
 ### HU05 — Modificar un pedido activo
 
