@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { verificarToken, permitirRoles } = require('../middlewares/autenticacion');
 
 const router = Router();
 
@@ -8,5 +9,13 @@ const router = Router();
 //   Sprint 3: /domicilios, /clientes
 //   Sprint 4: /reportes
 router.use('/salud', require('./salud.routes'));
+router.use('/auth', require('./auth.routes'));
+router.use('/usuarios', require('./usuarios.routes'));
+
+// Permisos de los módulos que vienen en sprints siguientes. Quedan protegidos desde ya:
+// un mesero recibe 403 al intentar entrar a caja o a reportes (criterio de HU01).
+// Mientras el módulo no exista, los roles con permiso reciben 404.
+router.use('/caja', verificarToken, permitirRoles('propietario', 'cajero'));
+router.use('/reportes', verificarToken, permitirRoles('propietario'));
 
 module.exports = router;

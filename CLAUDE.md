@@ -40,7 +40,7 @@ npm run db:init --prefix api     # BORRA y crea la base 'lapampa' con la carta r
 npm run db:prueba --prefix api   # igual + 3 mesas de ejemplo
 npm run db:nube --prefix api     # igual que db:init pero en Aiven (lee api/.env.nube)
 npm run dev                      # API :3000 + web :5173 (Vite redirige /api a :3000)
-npm test                         # pruebas API y web
+npm test                         # pruebas API (base aparte lapampa_test, necesita MySQL) y web
 npm run lint                     # ESLint en api y web
 ```
 
@@ -55,6 +55,12 @@ Reglas que ya hace cumplir la base: nombre de mesa único entre activas (columna
 Línea base de la operación actual (cierre de caja de unos 30 min, propinas cuadradas a mano, errores de comanda con 5 o más mesas): `docs/linea-base.md`.
 
 Pendiente con el propietario: la Subienda tiene dos precios ($44.000 / $47.000); se asumió pelada = 44.000 y gualajo = 47.000.
+
+## Sesión y permisos (HU01)
+
+- Toda ruta nueva se protege con `verificarToken` y `permitirRoles(...)` de `api/src/middlewares/autenticacion.js`; en el controlador, `req.usuario` es quien hizo la operación (úsalo para `mesero_id`, `cajero_id`, `historial_cambio.usuario_id`). Rutas en `docs/api.md`.
+- En la web, `useSesion()` (de `web/src/sesion/SesionContext.jsx`) da `usuario`, `ingresar` y `cerrarSesion`; las pantallas internas van dentro de `<RequiereSesion roles={[...]}>` y usan `<Encabezado titulo="..." volver />`. El menú por rol está en `web/src/sesion/menu.js`: al terminar un módulo, ponle `disponible: true`.
+- Las pruebas de la API usan la base `lapampa_test` (se crea sola) y las ayudas de `api/tests/apoyo/ayudas.js` (`crearCuenta`, `tokenDe`).
 
 ## Estilo visual (tomado de la carta de La Pampa)
 
@@ -73,12 +79,12 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 
 | Sprint | Historias | Estado |
 |---|---|---|
-| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados por el propietario y línea base documentada en `docs/linea-base.md`. Falta la Review, la Retro y pasar `develop` a `main` |
-| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Por hacer |
+| Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados y línea base en `docs/linea-base.md`. Cerrado y pasado a `main` |
+| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | HU01 lista para revisión (rama `feature/HU01-login`). Siguen HU02, HU03 y HU04 |
 | Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Por hacer |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** cerrar el Sprint 0 (Review, Retro y `develop` → `main`) y empezar el Sprint 1 por HU01. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
+**Siguiente paso:** HU02 (carta) y HU03 (mesas). Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v5): trabajo de grado `Proyecto_Gastrobar_v5_limpio.docx` y `Scrum_LaPampa_Gastrobar_v5.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.

@@ -1,12 +1,14 @@
 require('dotenv').config();
 
 // SSL para MySQL en la nube (Aiven lo exige). En local con XAMPP se deja DB_SSL vacío.
-// DB_SSL_CA es el certificado "CA certificate" que entrega Aiven, pegado en una sola
-// línea con \n donde van los saltos de línea.
+// DB_SSL_CA es el "CA certificate" que entrega Aiven: con sus saltos de línea reales
+// (entre comillas en .env.nube) o en una sola línea con \n.
 function configurarSsl() {
   if (process.env.DB_SSL !== 'true') return undefined;
   const ca = process.env.DB_SSL_CA;
-  return ca ? { ca: ca.replace(/\\n/g, '\n'), rejectUnauthorized: true } : { rejectUnauthorized: true };
+  return ca
+    ? { ca: ca.replace(/\\n/g, '\n'), rejectUnauthorized: true }
+    : { rejectUnauthorized: true };
 }
 
 const env = {

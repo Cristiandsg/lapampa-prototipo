@@ -20,9 +20,21 @@ export default function GuiaEstilo() {
       <section className="bloque">
         <h2 className="seccion-titulo">Pa' aguaitar</h2>
         <ul className="carta">
-          <LineaCarta nombre="Chumblún" precio={23000} descripcion="Trozos de pescado al panko con salsas pamperas" />
-          <LineaCarta nombre="Batea" precio={24000} descripcion="Anillos de calamar al panko acompañados con salsas pamperas" />
-          <LineaCarta nombre="Asunto allá" precio={13000} descripcion="Maduro frito con queso costeño" />
+          <LineaCarta
+            nombre="Chumblún"
+            precio={23000}
+            descripcion="Trozos de pescado al panko con salsas pamperas"
+          />
+          <LineaCarta
+            nombre="Batea"
+            precio={24000}
+            descripcion="Anillos de calamar al panko acompañados con salsas pamperas"
+          />
+          <LineaCarta
+            nombre="Asunto allá"
+            precio={13000}
+            descripcion="Maduro frito con queso costeño"
+          />
         </ul>
       </section>
 
@@ -38,8 +50,12 @@ export default function GuiaEstilo() {
       <section className="bloque">
         <h2 className="seccion-titulo">Botones</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="boton" type="button">Enviar a caja</button>
-          <button className="boton secundario" type="button">Nueva mesa</button>
+          <button className="boton" type="button">
+            Enviar a caja
+          </button>
+          <button className="boton secundario" type="button">
+            Nueva mesa
+          </button>
         </div>
       </section>
 
@@ -48,7 +64,16 @@ export default function GuiaEstilo() {
         <ul className="carta">
           {COLORES.map(([nombre, variable, hex, uso]) => (
             <li key={variable} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <span style={{ width: 40, height: 40, borderRadius: 10, background: `var(${variable})`, border: '1px solid var(--linea)', flex: 'none' }} />
+              <span
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: `var(${variable})`,
+                  border: '1px solid var(--linea)',
+                  flex: 'none',
+                }}
+              />
               <span>
                 <strong>{nombre}</strong> {hex}
                 <small>{uso}</small>
@@ -60,9 +85,15 @@ export default function GuiaEstilo() {
 
       <section className="bloque">
         <h2 className="seccion-titulo">Tipografías</h2>
-        <p style={{ fontFamily: 'var(--titulo)', fontWeight: 900, fontSize: '1.6rem' }}>Playfair Display Black</p>
-        <small className="nota" style={{ textAlign: 'left', display: 'block' }}>Títulos y nombres de sección</small>
-        <p style={{ marginTop: 12, fontWeight: 500 }}>Montserrat — textos, precios, botones y formularios</p>
+        <p style={{ fontFamily: 'var(--titulo)', fontWeight: 900, fontSize: '1.6rem' }}>
+          Playfair Display Black
+        </p>
+        <small className="nota" style={{ textAlign: 'left', display: 'block' }}>
+          Títulos y nombres de sección
+        </small>
+        <p style={{ marginTop: 12, fontWeight: 500 }}>
+          Montserrat — textos, precios, botones y formularios
+        </p>
       </section>
     </main>
   );
