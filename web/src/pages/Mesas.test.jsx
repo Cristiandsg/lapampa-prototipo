@@ -64,6 +64,7 @@ describe('Mesas de hoy (HU03)', () => {
       within(tarjeta('Cumpleaños Andrea')).getByText('$214.000 · 1 h 10 min'),
     ).toBeInTheDocument();
     expect(within(tarjeta('Terraza 1')).getByText('Libre')).toBeInTheDocument();
+    expect(within(tarjeta('Terraza 1')).getByText('Toca para abrir pedido')).toBeInTheDocument();
   });
 
   it('filtra por estado y muestra cuántas hay de cada una', async () => {
@@ -122,7 +123,7 @@ describe('Mesas de hoy (HU03)', () => {
     const usuario = userEvent.setup();
     abrir();
     await screen.findByText('Terraza 1');
-    await usuario.click(tarjeta('Terraza 1'));
+    await usuario.click(screen.getByRole('button', { name: 'Opciones de Terraza 1' }));
     const hoja = screen.getByRole('dialog', { name: 'Terraza 1' });
     const campo = within(hoja).getByLabelText('Cambiar nombre');
     await usuario.clear(campo);
@@ -139,7 +140,7 @@ describe('Mesas de hoy (HU03)', () => {
     const usuario = userEvent.setup();
     abrir();
     await screen.findByText('Terraza 1');
-    await usuario.click(tarjeta('Terraza 1'));
+    await usuario.click(screen.getByRole('button', { name: 'Opciones de Terraza 1' }));
     await usuario.click(screen.getByRole('button', { name: 'Eliminar mesa' }));
     expect(api.eliminarMesa).not.toHaveBeenCalled();
     await usuario.click(screen.getByRole('button', { name: 'Sí, eliminar «Terraza 1»' }));
@@ -150,7 +151,7 @@ describe('Mesas de hoy (HU03)', () => {
     const usuario = userEvent.setup();
     abrir();
     await screen.findByText('Terraza 1');
-    await usuario.click(tarjeta('Terraza 2'));
+    await usuario.click(screen.getByRole('button', { name: 'Opciones de Terraza 2' }));
     const hoja = screen.getByRole('dialog', { name: 'Terraza 2' });
     expect(within(hoja).getByText(/Tiene un pedido abierto/)).toBeInTheDocument();
     expect(within(hoja).queryByRole('button', { name: 'Eliminar mesa' })).not.toBeInTheDocument();

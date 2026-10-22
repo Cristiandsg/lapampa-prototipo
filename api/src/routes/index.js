@@ -14,6 +14,7 @@ router.use('/usuarios', require('./usuarios.routes'));
 router.use('/categorias', require('./categorias.routes'));
 router.use('/productos', require('./productos.routes'));
 router.use('/mesas', require('./mesas.routes'));
+router.use('/pedidos', require('./pedidos.routes'));
 
 // Permisos de los módulos que vienen en sprints siguientes. Quedan protegidos desde ya:
 // un mesero recibe 403 al intentar entrar a caja o a reportes (criterio de HU01).

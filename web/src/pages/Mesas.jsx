@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Encabezado from '../components/Encabezado';
 import { pesos } from '../components/LineaCarta';
 import { useSesion } from '../sesion/SesionContext';
@@ -34,7 +35,7 @@ function duracion(minutos) {
 }
 
 function detalle(mesa) {
-  if (!mesa.pedido) return 'Sin pedido';
+  if (!mesa.pedido) return 'Toca para abrir pedido';
   const total = pesos.format(mesa.pedido.total);
   return mesa.estado === 'por_cobrar'
     ? `${total} · en caja`
@@ -45,6 +46,7 @@ function detalle(mesa) {
 // No hay mesas fijas: el mesero crea las que necesite con el nombre que quiera.
 export default function Mesas() {
   const { usuario } = useSesion();
+  const navigate = useNavigate();
   const [mesas, setMesas] = useState(null);
   const [filtro, setFiltro] = useState('todas');
   const [error, setError] = useState(null);
@@ -252,11 +254,26 @@ export default function Mesas() {
       {visibles.length > 0 && (
         <ul className="mesas" aria-label="Mesas">
           {visibles.map((m) => (
-            <li key={m.id}>
-              <button type="button" className="mesa" onClick={() => abrirOpciones(m)}>
+            <li key={m.id} className="mesa-celda">
+              {/* Libre: abre el pedido (HU04). Con pedido: muestra el pedido. */}
+              <button
+                type="button"
+                className="mesa"
+                onClick={() =>
+                  navigate(m.pedido ? `/pedidos/${m.pedido.id}` : `/mesas/${m.id}/pedido`)
+                }
+              >
                 <span className="mesa-nombre">{m.nombre}</span>
                 <span className={`chip ${ESTADOS[m.estado].chip}`}>{ESTADOS[m.estado].texto}</span>
                 <span className="mesa-detalle">{detalle(m)}</span>
+              </button>
+              <button
+                type="button"
+                className="mesa-opciones"
+                aria-label={`Opciones de ${m.nombre}`}
+                onClick={() => abrirOpciones(m)}
+              >
+                <span aria-hidden="true">⋯</span>
               </button>
             </li>
           ))}

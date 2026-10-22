@@ -112,4 +112,4 @@ Criterio de HT-01: la URL pública responde `GET /api/salud` con HTTPS desde un 
 
 **Sprint 0** — Terminado: repositorio y despliegue en la nube (HT-01), modelo de datos (HT-02), mockups aprobados por el propietario y [línea base](docs/linea-base.md) (HT-03).
 
-**Sprint 1** — HU01 (inicio de sesión y permisos por rol) lista para revisión: ingreso, bloqueo tras 5 intentos, menú por rol, cierre de sesión y gestión de usuarios. Rutas en [docs/api.md](docs/api.md). HU02 (carta digital) publicada. HU03 (mesas de la jornada) en revisión.
+**Sprint 1** — HU01 (inicio de sesión y permisos por rol) lista para revisión: ingreso, bloqueo tras 5 intentos, menú por rol, cierre de sesión y gestión de usuarios. Rutas en [docs/api.md](docs/api.md). HU02 (carta digital) publicada. HU03 (mesas de la jornada) publicada. HU04 (pedido por mesa) en revisión.

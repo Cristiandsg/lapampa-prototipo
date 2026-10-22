@@ -644,6 +644,169 @@ details.categorias summary {
   overflow-wrap: anywhere;
 }
 
+/* Botón de opciones (⋯) en la esquina de cada mesa */
+.mesa-celda {
+  position: relative;
+}
+.mesa-celda .mesa {
+  padding-right: 48px;
+}
+.mesa-opciones {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--cafe);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.mesa-opciones:active {
+  background: var(--crema);
+}
+
+/* ---------- Pedido (HU04) ---------- */
+.pagina.con-pie {
+  padding-bottom: 150px;
+}
+.carta .producto.elegido .carta-linea {
+  color: var(--cafe);
+}
+.carta .producto.elegido {
+  background: linear-gradient(90deg, rgba(232, 185, 94, 0.18), transparent);
+  margin-inline: -8px;
+  padding-inline: 8px;
+  border-radius: 8px;
+}
+.carta .producto .acciones {
+  align-items: center;
+}
+.contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.contador span {
+  min-width: 1.5ch;
+  text-align: center;
+}
+.boton-redondo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--cafe);
+  background: transparent;
+  color: var(--cafe);
+  font: 700 1.3rem var(--texto);
+  line-height: 1;
+  cursor: pointer;
+}
+.boton-redondo.lleno {
+  background: var(--cafe);
+  color: var(--papel);
+}
+.nota-producto {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dorado);
+}
+.campo textarea {
+  width: 100%;
+  border: 2px solid var(--linea);
+  border-radius: 12px;
+  background: var(--papel);
+  padding: 12px 14px;
+  font: 500 1rem var(--texto);
+  color: var(--cafe);
+  resize: vertical;
+}
+.campo textarea:focus {
+  border-color: var(--cafe);
+  outline: none;
+}
+.pie-pedido {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  background: var(--papel);
+  border-top: 1px solid var(--linea);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 -4px 16px rgba(74, 52, 24, 0.08);
+}
+.pie-pedido > * {
+  max-width: 528px;
+  width: 100%;
+  margin: 0 auto;
+}
+.pie-pedido-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pie-pedido-fila .boton {
+  min-height: 52px;
+  padding: 0 24px;
+  font-size: 1.05rem;
+}
+.pie-cantidad {
+  font-size: 0.85rem;
+  color: var(--cafe-suave);
+}
+.pie-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.fila-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.fila-titulo .seccion-titulo {
+  margin: 0;
+}
+.total-pedido {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 2px solid var(--cafe);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+details summary {
+  min-height: var(--tactil);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+.tirilla {
+  background: #fff;
+  color: #111;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font:
+    0.85rem/1.4 'Courier New',
+    ui-monospace,
+    monospace;
+  white-space: pre;
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;
