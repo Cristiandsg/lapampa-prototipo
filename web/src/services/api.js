@@ -75,4 +75,40 @@ export async function actualizarUsuario(id, cambios) {
   return data.usuario;
 }
 
+// ---------- Carta (HU02) ----------
+export async function listarCategorias() {
+  const { data } = await api.get('/categorias');
+  return data;
+}
+
+export async function crearCategoria(datos) {
+  const { data } = await api.post('/categorias', datos);
+  return data;
+}
+
+export async function actualizarCategoria(id, cambios) {
+  const { data } = await api.patch(`/categorias/${id}`, cambios);
+  return data;
+}
+
+export async function eliminarCategoria(id) {
+  await api.delete(`/categorias/${id}`);
+}
+
+// filtros: { categoria_id, activos: true, disponibles: true }
+export async function listarProductos(filtros = {}) {
+  const { data } = await api.get('/productos', { params: filtros });
+  return data;
+}
+
+export async function crearProducto(datos) {
+  const { data } = await api.post('/productos', datos);
+  return data;
+}
+
+export async function actualizarProducto(id, cambios) {
+  const { data } = await api.patch(`/productos/${id}`, cambios);
+  return data;
+}
+
 export default api;

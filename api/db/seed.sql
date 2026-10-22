@@ -43,8 +43,10 @@ INSERT INTO categoria (nombre, orden, activa) VALUES
 -- ---------------------------------------------------------------------
 -- Productos (precios en pesos colombianos)
 -- ---------------------------------------------------------------------
+-- Los productos se insertan en el mismo orden de la carta impresa (sin JOIN, para que
+-- el motor no los reordene): así el id sigue ese orden y la carta digital los muestra igual.
 INSERT INTO producto (categoria_id, nombre, descripcion, precio)
-SELECT c.id, p.nombre, p.descripcion, p.precio
+SELECT (SELECT c.id FROM categoria c WHERE c.nombre = p.cat), p.nombre, p.descripcion, p.precio
 FROM (
   -- Pa' aguaitar
   SELECT 'Pa'' aguaitar' cat, 'Chumblún' nombre, 'Trozos de pescado al panko con salsas pamperas' descripcion, 23000 precio
@@ -120,5 +122,4 @@ FROM (
   UNION ALL SELECT 'Viche La Pampa', 'Viche puro botella 750 ml', NULL, 40000
   UNION ALL SELECT 'Viche La Pampa', 'Viche puro caneca 375 ml', NULL, 20000
   UNION ALL SELECT 'Viche La Pampa', 'Viche puro shot en jícara', NULL, 3000
-) AS p
-JOIN categoria c ON c.nombre = p.cat;
+) AS p;

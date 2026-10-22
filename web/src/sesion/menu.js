@@ -14,6 +14,7 @@ export const OPCIONES = [
     descripcion: 'Productos, precios y agotados del día',
     roles: ['propietario'],
     sprint: 1,
+    disponible: true,
   },
   {
     ruta: '/caja',
