@@ -8,23 +8,22 @@ async function listar(soloActivas = false) {
   }
   query += ' ORDER BY orden ASC, nombre ASC';
   const [filas] = await pool.query(query);
-  return filas.map(f => ({ ...f, activa: Boolean(f.activa) }));
+  return filas.map((f) => ({ ...f, activa: Boolean(f.activa) }));
 }
 
 async function obtenerPorId(id) {
-  const [filas] = await pool.query(
-    'SELECT id, nombre, orden, activa FROM categoria WHERE id = ?',
-    [id]
-  );
+  const [filas] = await pool.query('SELECT id, nombre, orden, activa FROM categoria WHERE id = ?', [
+    id,
+  ]);
   if (!filas[0]) return null;
   return { ...filas[0], activa: Boolean(filas[0].activa) };
 }
 
 async function crear({ nombre, orden = 0 }) {
-  const [resultado] = await pool.query(
-    'INSERT INTO categoria (nombre, orden) VALUES (?, ?)',
-    [nombre, orden]
-  );
+  const [resultado] = await pool.query('INSERT INTO categoria (nombre, orden) VALUES (?, ?)', [
+    nombre,
+    orden,
+  ]);
   return obtenerPorId(resultado.insertId);
 }
 

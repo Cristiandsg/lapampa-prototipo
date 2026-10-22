@@ -1,88 +1,75 @@
 const { Router } = require('express');
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const validar = require('../middlewares/validar');
 const { verificarToken, permitirRoles } = require('../middlewares/autenticacion');
 const productos = require('../controllers/productos.controller');
 
 const router = Router();
+router.use(verificarToken);
 
-// Consulta pública o interna de productos
-router.get('/', verificarToken, productos.listar);
-router.get('/:id', verificarToken, productos.obtenerPorId);
+const PRECIO_MAXIMO = 99999999; // DECIMAL(10,2)
 
-// Creación de producto (solo propietario)
+const reglas = {
+  id: () => param('id').isInt({ min: 1 }).withMessage('Producto no válido.'),
+  categoriaId: () =>
+    body('categoriaId')
+      .isInt({ min: 1, max: 65535 })
+      .withMessage('Selecciona una categoría válida.'),
+  nombre: () =>
+    body('nombre')
+      .isString()
+      .trim()
+      .isLength({ min: 2, max: 80 })
+      .withMessage('El nombre del producto debe tener entre 2 y 80 caracteres.'),
+  descripcion: () =>
+    body('descripcion')
+      .optional({ values: 'null' })
+      .isString()
+      .trim()
+      .isLength({ max: 255 })
+      .withMessage('La descripción no puede superar los 255 caracteres.'),
+  precio: () =>
+    body('precio')
+      .isFloat({ gt: 0, max: PRECIO_MAXIMO })
+      .withMessage('El precio debe ser un número mayor a cero.')
+      .toFloat(),
+  booleano: (campo) =>
+    body(campo)
+      .optional()
+      .isBoolean({ strict: true })
+      .withMessage(`El campo ${campo} debe ser verdadero o falso.`),
+};
+
+// Cualquiera con sesión consulta la carta (mesero y cajero la necesitan para los pedidos)
+router.get('/', productos.listar);
+router.get('/:id', reglas.id(), validar, productos.obtenerPorId);
+
+// Crear: solo el propietario
 router.post(
   '/',
-  verificarToken,
   permitirRoles('propietario'),
-  [
-    body('categoriaId')
-      .isInt({ min: 1 })
-      .withMessage('Debe seleccionar una categoría válida.'),
-    body('nombre')
-      .isString()
-      .trim()
-      .isLength({ min: 2, max: 80 })
-      .withMessage('El nombre del producto debe tener entre 2 y 80 caracteres.'),
-    body('descripcion')
-      .optional({ nullable: true })
-      .isString()
-      .trim()
-      .isLength({ max: 255 })
-      .withMessage('La descripción no puede superar los 255 caracteres.'),
-    body('precio')
-      .isFloat({ gt: 0 })
-      .withMessage('El precio debe ser un número mayor a cero.'),
-  ],
+  reglas.categoriaId(),
+  reglas.nombre(),
+  reglas.descripcion(),
+  reglas.precio(),
   validar,
-  productos.crear
+  productos.crear,
 );
 
-// Edición de producto (solo propietario, excepto el cambio de 'agotado_hoy' que también permite cajero/mesero)
+// Editar: el propietario cambia todo; mesero y cajero solo "agotado hoy" (lo valida el controlador).
+// No hay DELETE: los productos se desactivan con { "activo": false }.
 router.patch(
   '/:id',
-  verificarToken,
   permitirRoles('propietario', 'cajero', 'mesero'),
-  [
-    body('categoriaId')
-      .optional()
-      .isInt({ min: 1 })
-      .withMessage('Debe seleccionar una categoría válida.'),
-    body('nombre')
-      .optional()
-      .isString()
-      .trim()
-      .isLength({ min: 2, max: 80 })
-      .withMessage('El nombre del producto debe tener entre 2 y 80 caracteres.'),
-    body('descripcion')
-      .optional({ nullable: true })
-      .isString()
-      .trim()
-      .isLength({ max: 255 })
-      .withMessage('La descripción no puede superar los 255 caracteres.'),
-    body('precio')
-      .optional()
-      .isFloat({ gt: 0 })
-      .withMessage('El precio debe ser un número mayor a cero.'),
-    body('activo')
-      .optional()
-      .isBoolean()
-      .withMessage('El campo activo debe ser booleano.'),
-    body('agotadoHoy')
-      .optional()
-      .isBoolean()
-      .withMessage('El campo agotadoHoy debe ser booleano.'),
-  ],
+  reglas.id(),
+  reglas.categoriaId().optional(),
+  reglas.nombre().optional(),
+  reglas.descripcion(),
+  reglas.precio().optional(),
+  reglas.booleano('activo'),
+  reglas.booleano('agotadoHoy'),
   validar,
-  productos.actualizar
-);
-
-// Eliminación de producto (solo propietario)
-router.delete(
-  '/:id',
-  verificarToken,
-  permitirRoles('propietario'),
-  productos.eliminar
+  productos.actualizar,
 );
 
 module.exports = router;

@@ -1,67 +1,52 @@
 const categoriaModel = require('../models/categoria.model');
 
-async function listar(req, res, next) {
-  try {
-    const soloActivas = req.query.activas === 'true';
-    const categorias = await categoriaModel.listar(soloActivas);
-    res.json(categorias);
-  } catch (error) {
-    next(error);
-  }
+// GET /api/categorias?activas=true
+async function listar(req, res) {
+  res.json(await categoriaModel.listar(req.query.activas === 'true'));
 }
 
-async function crear(req, res, next) {
+async function crear(req, res) {
+  const { nombre, orden } = req.body;
   try {
-    const { nombre, orden } = req.body;
-    const nuevaCategoria = await categoriaModel.crear({ nombre, orden });
-    res.status(201).json(nuevaCategoria);
+    res.status(201).json(await categoriaModel.crear({ nombre, orden }));
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Ya existe una categoría con ese nombre.' });
+      return res.status(409).json({ error: 'Ya existe una categoría con ese nombre.' });
     }
-    next(error);
+    throw error;
   }
 }
 
-async function actualizar(req, res, next) {
+// PATCH /api/categorias/:id — renombrar, reordenar o activar/desactivar.
+// Una categoría desactivada saca sus productos de los pedidos nuevos sin borrarlos.
+async function actualizar(req, res) {
+  const { nombre, orden, activa } = req.body;
   try {
-    const { id } = req.params;
-    const { nombre, orden, activa } = req.body;
-    const categoriaActualizada = await categoriaModel.actualizar(id, { nombre, orden, activa });
-    if (!categoriaActualizada) {
-      return res.status(404).json({ error: 'Categoría no encontrada.' });
-    }
-    res.json(categoriaActualizada);
+    const actualizada = await categoriaModel.actualizar(req.params.id, { nombre, orden, activa });
+    if (!actualizada) return res.status(404).json({ error: 'Categoría no encontrada.' });
+    res.json(actualizada);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Ya existe otra categoría con ese nombre.' });
+      return res.status(409).json({ error: 'Ya existe otra categoría con ese nombre.' });
     }
-    next(error);
+    throw error;
   }
 }
 
-async function eliminar(req, res, next) {
+// DELETE /api/categorias/:id — solo si está vacía (por ejemplo, una creada por error).
+async function eliminar(req, res) {
   try {
-    const { id } = req.params;
-    const eliminada = await categoriaModel.eliminar(id);
-
-    if (!eliminada) {
-      return res.status(404).json({ error: 'Categoría no encontrada.' });
-    }
-
-    res.json({ mensaje: 'Categoría eliminada correctamente.' });
+    const eliminada = await categoriaModel.eliminar(req.params.id);
+    if (!eliminada) return res.status(404).json({ error: 'Categoría no encontrada.' });
+    res.json({ mensaje: 'Categoría eliminada.' });
   } catch (error) {
-    // Si hay una restricción de llave foránea (productos asociados)
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(400).json({ error: 'No se puede eliminar la categoría porque tiene productos asociados.' });
+      return res.status(409).json({
+        error: 'La categoría tiene productos: desactívala en lugar de eliminarla.',
+      });
     }
-    next(error);
+    throw error;
   }
 }
 
-module.exports = {
-  listar,
-  crear,
-  actualizar,
-  eliminar,
-};
+module.exports = { listar, crear, actualizar, eliminar };

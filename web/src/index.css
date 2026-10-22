@@ -474,6 +474,77 @@ a.opcion:active {
   border-style: dashed;
 }
 
+/* ---------- Carta (HU02) ---------- */
+.carta .producto {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--linea);
+}
+.carta .producto:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.carta .producto .chip {
+  justify-self: start;
+}
+.carta .producto .acciones {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.carta .producto .boton.chico {
+  padding: 0 12px;
+  font-size: 0.85rem;
+}
+.carta .producto.inactivo .carta-linea {
+  color: var(--cafe-suave);
+  text-decoration: line-through;
+}
+.boton[aria-pressed='true'] {
+  background: var(--dorado);
+  border-color: var(--dorado);
+  color: #fff;
+}
+details.categorias summary {
+  min-height: var(--tactil);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.fila-formulario {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+  margin: 8px 0 16px;
+}
+.lista-categorias {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.lista-categorias li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--linea);
+}
+.lista-categorias li span {
+  display: grid;
+}
+.lista-categorias small {
+  color: var(--cafe-suave);
+}
+.lista-categorias li.inactivo strong {
+  color: var(--cafe-suave);
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;

@@ -31,8 +31,22 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | GET | `/usuarios/roles` | Propietario | Roles: propietario, cajero, mesero |
 | POST | `/usuarios` | Propietario | `{ nombre, usuario, contrasena, rol }` → crea la cuenta (409 si el usuario ya existe) |
 | PUT | `/usuarios/:id` | Propietario | Cualquiera de `{ nombre, rol, contrasena, activo }`. Cambiar la contraseña desbloquea la cuenta. El propietario no puede desactivarse ni quitarse el rol a sí mismo |
+| GET | `/categorias` | Con sesión | Categorías en el orden de la carta (`?activas=true` para ocultar las desactivadas) |
+| POST | `/categorias` | Propietario | `{ nombre, orden? }` (409 si el nombre ya existe) |
+| PATCH | `/categorias/:id` | Propietario | Cualquiera de `{ nombre, orden, activa }`. Una categoría desactivada saca sus productos de los pedidos |
+| DELETE | `/categorias/:id` | Propietario | Solo si no tiene productos (si tiene, 409: se desactiva) |
+| GET | `/productos` | Con sesión | Carta completa. Filtros: `categoria_id`, `activos=true` y `disponibles=true` (activo, no agotado y de categoría activa: lo que se puede pedir hoy, para HU04 y HU09) |
+| GET | `/productos/:id` | Con sesión | Un producto |
+| POST | `/productos` | Propietario | `{ categoriaId, nombre, descripcion?, precio }`; precio mayor a cero (409 si el nombre ya existe) |
+| PATCH | `/productos/:id` | Propietario; mesero y cajero solo `agotadoHoy` | Cualquiera de `{ categoriaId, nombre, descripcion, precio, activo, agotadoHoy }`. No hay DELETE: los productos se desactivan con `{ "activo": false }` |
 | * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
+
+## Reglas de la carta (HU02)
+
+- Los productos no se borran: se desactivan, para no romper los pedidos ya registrados.
+- Un cambio de precio solo aplica a los pedidos nuevos: cada `detalle_pedido` guarda el precio del momento.
+- "Agotado hoy" oculta un producto de los pedidos de la jornada sin desactivarlo; lo pueden marcar el propietario, el cajero y el mesero.
 
 ## Reglas de las cuentas
 

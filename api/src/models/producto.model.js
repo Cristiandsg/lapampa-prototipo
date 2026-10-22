@@ -1,105 +1,74 @@
 const pool = require('../config/db');
 
-// Listar productos (con opción de filtrar solo activos o incluir agotados)
-async function listar(filtros = {}) {
-  let query = `
-    SELECT p.id, p.categoria_id, c.nombre AS categoria_nombre, 
-           p.nombre, p.descripcion, p.precio, p.activo, p.agotado_hoy, 
-           p.creado_en, p.actualizado_en
-    FROM producto p
-    JOIN categoria c ON c.id = p.categoria_id
-    WHERE 1=1
-  `;
+const COLUMNAS = `
+  p.id, p.categoria_id, c.nombre AS categoria_nombre,
+  p.nombre, p.descripcion, p.precio, p.activo, p.agotado_hoy,
+  p.creado_en, p.actualizado_en`;
+
+function normalizar(fila) {
+  return {
+    ...fila,
+    activo: Boolean(fila.activo),
+    agotado_hoy: Boolean(fila.agotado_hoy),
+    precio: Number(fila.precio),
+  };
+}
+
+// Lista los productos en el orden de la carta (categoría y nombre).
+async function listar({ soloActivos = false, soloDisponibles = false, categoriaId = null } = {}) {
+  let query = `SELECT ${COLUMNAS} FROM producto p JOIN categoria c ON c.id = p.categoria_id WHERE 1=1`;
   const valores = [];
 
-  if (filtros.soloActivos) {
-    query += ' AND p.activo = TRUE';
-  }
-  if (filtros.categoriaId) {
+  if (soloActivos || soloDisponibles) query += ' AND p.activo = TRUE';
+  if (soloDisponibles) query += ' AND p.agotado_hoy = FALSE AND c.activa = TRUE';
+  if (categoriaId) {
     query += ' AND p.categoria_id = ?';
-    valores.push(filtros.categoriaId);
+    valores.push(categoriaId);
   }
 
-  query += ' ORDER BY c.orden ASC, p.nombre ASC';
+  query += ' ORDER BY c.orden ASC, p.id ASC'; // mismo orden de la carta impresa
   const [filas] = await pool.query(query, valores);
-  return filas.map(f => ({
-    ...f,
-    activo: Boolean(f.activo),
-    agotado_hoy: Boolean(f.agotado_hoy),
-    precio: Number(f.precio),
-  }));
+  return filas.map(normalizar);
 }
 
 async function obtenerPorId(id) {
   const [filas] = await pool.query(
-    `SELECT p.id, p.categoria_id, c.nombre AS categoria_nombre, 
-            p.nombre, p.descripcion, p.precio, p.activo, p.agotado_hoy, 
-            p.creado_en, p.actualizado_en
-     FROM producto p
-     JOIN categoria c ON c.id = p.categoria_id
-     WHERE p.id = ?`,
-    [id]
+    `SELECT ${COLUMNAS} FROM producto p JOIN categoria c ON c.id = p.categoria_id WHERE p.id = ?`,
+    [id],
   );
-  if (!filas[0]) return null;
-  return {
-    ...filas[0],
-    activo: Boolean(filas[0].activo),
-    agotado_hoy: Boolean(filas[0].agotado_hoy),
-    precio: Number(filas[0].precio),
-  };
+  return filas[0] ? normalizar(filas[0]) : null;
 }
 
 async function crear({ categoriaId, nombre, descripcion, precio }) {
   const [resultado] = await pool.query(
     'INSERT INTO producto (categoria_id, nombre, descripcion, precio) VALUES (?, ?, ?, ?)',
-    [categoriaId, nombre, descripcion || null, precio]
+    [categoriaId, nombre, descripcion || null, precio],
   );
   return obtenerPorId(resultado.insertId);
 }
 
+// Solo actualiza los campos que llegan.
 async function actualizar(id, { categoriaId, nombre, descripcion, precio, activo, agotadoHoy }) {
+  const campos = {
+    categoria_id: categoriaId,
+    nombre,
+    descripcion: descripcion === '' ? null : descripcion,
+    precio,
+    activo,
+    agotado_hoy: agotadoHoy,
+  };
   const sets = [];
   const valores = [];
-  if (categoriaId !== undefined) {
-    sets.push('categoria_id = ?');
-    valores.push(categoriaId);
-  }
-  if (nombre !== undefined) {
-    sets.push('nombre = ?');
-    valores.push(nombre);
-  }
-  if (descripcion !== undefined) {
-    sets.push('descripcion = ?');
-    valores.push(descripcion);
-  }
-  if (precio !== undefined) {
-    sets.push('precio = ?');
-    valores.push(precio);
-  }
-  if (activo !== undefined) {
-    sets.push('activo = ?');
-    valores.push(activo);
-  }
-  if (agotadoHoy !== undefined) {
-    sets.push('agotado_hoy = ?');
-    valores.push(agotadoHoy);
+  for (const [columna, valor] of Object.entries(campos)) {
+    if (valor !== undefined) {
+      sets.push(`${columna} = ?`);
+      valores.push(valor);
+    }
   }
   if (sets.length > 0) {
-    valores.push(id);
-    await pool.query(`UPDATE producto SET ${sets.join(', ')} WHERE id = ?`, valores);
+    await pool.query(`UPDATE producto SET ${sets.join(', ')} WHERE id = ?`, [...valores, id]);
   }
   return obtenerPorId(id);
 }
 
-async function eliminar(id) {
-  const [resultado] = await pool.query('DELETE FROM producto WHERE id = ?', [id]);
-  return resultado.affectedRows > 0;
-}
-
-module.exports = {
-  listar,
-  obtenerPorId,
-  crear,
-  actualizar,
-  eliminar,
-};
+module.exports = { listar, obtenerPorId, crear, actualizar };

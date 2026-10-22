@@ -80,11 +80,11 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 | Sprint | Historias | Estado |
 |---|---|---|
 | Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados y línea base en `docs/linea-base.md`. Cerrado y pasado a `main` |
-| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | HU01 lista para revisión (rama `feature/HU01-login`). Siguen HU02, HU03 y HU04 |
+| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | HU01 publicada. HU02 (carta) en revisión: rama `feature/HU02-4-agotado-hoy` (Diana + ajustes de revisión). Siguen HU03 y HU04 |
 | Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Por hacer |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** HU02 (carta) y HU03 (mesas). Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
+**Siguiente paso:** HU03 (mesas) y HU04 (pedido por mesa, usa `GET /api/productos?disponibles=true`). Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v5): trabajo de grado `Proyecto_Gastrobar_v5_limpio.docx` y `Scrum_LaPampa_Gastrobar_v5.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.

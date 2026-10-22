@@ -1,404 +1,360 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Encabezado from '../components/Encabezado';
 import LineaCarta from '../components/LineaCarta';
-import { leerSesion } from '../sesion/almacen';
+import {
+  actualizarCategoria,
+  actualizarProducto,
+  crearCategoria,
+  crearProducto,
+  eliminarCategoria,
+  listarCategorias,
+  listarProductos,
+  mensajeDeError,
+} from '../services/api';
 
+const PRODUCTO_VACIO = { categoriaId: '', nombre: '', descripcion: '', precio: '' };
+
+// "23.000" o "$23000" → 23000
+const soloNumero = (texto) => Number(String(texto).replace(/\D/g, ''));
+
+// HU02 — Gestión de la carta digital (propietario).
+// Los productos no se borran: se desactivan. "Agotado hoy" los oculta de los pedidos
+// de la jornada sin desactivarlos.
 export default function Carta() {
   const [categorias, setCategorias] = useState([]);
-  const [productos, setProductos] = useState([]);
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
-  
-  // Estados para formularios
+  const [productos, setProductos] = useState(null);
+  const [filtro, setFiltro] = useState('');
+  const [error, setError] = useState(null);
+  const [exito, setExito] = useState(null);
+  // null = sin formulario; 'nuevo' = crear; un número = editar ese producto
+  const [editando, setEditando] = useState(null);
+  const [form, setForm] = useState(PRODUCTO_VACIO);
+  const [guardando, setGuardando] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState('');
-  const [nuevoProducto, setNuevoProducto] = useState({
-    categoriaId: '',
-    nombre: '',
-    descripcion: '',
-    precio: '',
-  });
 
-  const obtenerToken = () => {
-    const sesion = leerSesion();
-    return sesion?.token || null;
-  };
-
-  useEffect(() => {
-    fetchData();
+  const cargar = useCallback(async () => {
+    try {
+      const [cats, prods] = await Promise.all([listarCategorias(), listarProductos()]);
+      setCategorias(cats);
+      setProductos(prods);
+    } catch (err) {
+      setError(mensajeDeError(err));
+    }
   }, []);
 
-  async function fetchData() {
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  function avisar(mensaje) {
+    setError(null);
+    setExito(mensaje);
+  }
+
+  // Ejecuta una acción, muestra el resultado y recarga la carta
+  async function hacer(accion, mensajeOk) {
+    setError(null);
+    setExito(null);
     try {
-      const token = obtenerToken();
-      if (!token) return;
-
-      const headers = { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-      
-      const resCat = await fetch('http://localhost:3000/api/categorias', { headers });
-      if (resCat.ok) {
-        const dataCat = await resCat.json();
-        setCategorias(dataCat);
-      }
-
-      const resProd = await fetch('http://localhost:3000/api/productos', { headers });
-      if (resProd.ok) {
-        const dataProd = await resProd.json();
-        setProductos(dataProd);
-      }
+      await accion();
+      avisar(mensajeOk);
+      await cargar();
+      return true;
     } catch (err) {
-      console.error('Error al cargar la carta:', err);
+      setError(mensajeDeError(err));
+      return false;
     }
   }
 
-  // Crear Categoría
-  async function handleCrearCategoria(e) {
-    e.preventDefault();
-    if (!nuevaCategoria.trim()) return;
+  // ---------- Productos ----------
+  function abrirNuevo() {
+    setForm({ ...PRODUCTO_VACIO, categoriaId: filtro || '' });
+    setEditando('nuevo');
+    setError(null);
+    setExito(null);
+  }
 
-    const token = obtenerToken();
-    if (!token) return;
+  function abrirEdicion(p) {
+    setForm({
+      categoriaId: String(p.categoria_id),
+      nombre: p.nombre,
+      descripcion: p.descripcion || '',
+      precio: String(p.precio),
+    });
+    setEditando(p.id);
+    setError(null);
+    setExito(null);
+    window.scrollTo?.({ top: 0, behavior: 'smooth' });
+  }
 
-    try {
-      const res = await fetch('http://localhost:3000/api/categorias', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nombre: nuevaCategoria }),
-      });
+  const cambiar = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
 
-      const data = await res.json();
+  async function guardarProducto(evento) {
+    evento.preventDefault();
+    const datos = {
+      categoriaId: Number(form.categoriaId),
+      nombre: form.nombre.trim(),
+      descripcion: form.descripcion.trim() || null,
+      precio: soloNumero(form.precio),
+    };
+    if (!datos.categoriaId) return setError('Selecciona la categoría.');
+    if (!(datos.precio > 0)) return setError('El precio debe ser mayor a cero.');
 
-      if (res.ok) {
-        setNuevaCategoria('');
-        await fetchData();
-        alert('¡Categoría creada con éxito!');
-      } else {
-        alert(`Error: ${data.error || 'No se pudo crear la categoría'}`);
-      }
-    } catch (err) {
-      console.error('Error al conectar:', err);
+    setGuardando(true);
+    const ok = await hacer(
+      () => (editando === 'nuevo' ? crearProducto(datos) : actualizarProducto(editando, datos)),
+      editando === 'nuevo'
+        ? `${datos.nombre} quedó en la carta.`
+        : `${datos.nombre} actualizado. Los pedidos anteriores conservan su precio.`,
+    );
+    setGuardando(false);
+    if (ok) setEditando(null);
+  }
+
+  const alternarAgotado = (p) =>
+    hacer(
+      () => actualizarProducto(p.id, { agotadoHoy: !p.agotado_hoy }),
+      p.agotado_hoy
+        ? `${p.nombre} vuelve a estar disponible hoy.`
+        : `${p.nombre} quedó agotado por hoy.`,
+    );
+
+  const alternarActivo = (p) =>
+    hacer(
+      () => actualizarProducto(p.id, { activo: !p.activo }),
+      p.activo
+        ? `${p.nombre} se desactivó: ya no aparece en los pedidos nuevos.`
+        : `${p.nombre} volvió a la carta.`,
+    );
+
+  // ---------- Categorías ----------
+  async function agregarCategoria(evento) {
+    evento.preventDefault();
+    const nombre = nuevaCategoria.trim();
+    if (!nombre) return;
+    const orden = Math.max(0, ...categorias.map((c) => c.orden)) + 1;
+    if (await hacer(() => crearCategoria({ nombre, orden }), `Categoría "${nombre}" creada.`)) {
+      setNuevaCategoria('');
     }
   }
 
-  // ELIMINAR CATEGORÍA
-  async function handleEliminarCategoria(idCategoria, nombreCategoria) {
-    const confirmar = window.confirm(`¿Estás seguro de que deseas eliminar la categoría "${nombreCategoria}"?\nNota: No debe tener productos asociados.`);
-    if (!confirmar) return;
+  const alternarCategoria = (c) =>
+    hacer(
+      () => actualizarCategoria(c.id, { activa: !c.activa }),
+      c.activa
+        ? `"${c.nombre}" quedó oculta: sus productos no salen en los pedidos.`
+        : `"${c.nombre}" se muestra otra vez.`,
+    );
 
-    const token = obtenerToken();
-    if (!token) return;
-
-    try {
-      const res = await fetch(`http://localhost:3000/api/categorias/${idCategoria}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        await fetchData();
-        alert(`La categoría "${nombreCategoria}" ha sido eliminada.`);
-      } else {
-        const data = await res.json();
-        alert(`Error: ${data.error || 'No se pudo eliminar la categoría'}`);
-      }
-    } catch (err) {
-      console.error('Error al eliminar categoría:', err);
-      alert('Ocurrió un error al intentar eliminar la categoría.');
-    }
+  function borrarCategoria(c) {
+    if (!window.confirm(`¿Eliminar la categoría "${c.nombre}"?`)) return;
+    hacer(() => eliminarCategoria(c.id), `Categoría "${c.nombre}" eliminada.`);
   }
 
-  // Crear Producto
-  async function handleCrearProducto(e) {
-    e.preventDefault();
-    const token = obtenerToken();
-    if (!token) return;
+  // ---------- Vista ----------
+  const grupos = useMemo(() => {
+    if (!productos) return [];
+    return categorias
+      .filter((c) => !filtro || c.id === Number(filtro))
+      .map((c) => ({ ...c, productos: productos.filter((p) => p.categoria_id === c.id) }))
+      .filter((c) => c.productos.length > 0 || filtro);
+  }, [categorias, productos, filtro]);
 
-    try {
-      const res = await fetch('http://localhost:3000/api/productos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          categoriaId: Number(nuevoProducto.categoriaId),
-          nombre: nuevoProducto.nombre,
-          descripcion: nuevoProducto.descripcion,
-          precio: Number(nuevoProducto.precio),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setNuevoProducto({ categoriaId: '', nombre: '', descripcion: '', precio: '' });
-        await fetchData();
-        alert('¡Producto creado con éxito!');
-      } else {
-        alert(`Error: ${data.error || 'No se pudo crear el producto'}`);
-      }
-    } catch (err) {
-      console.error('Error al crear producto:', err);
-    }
-  }
-
-  // ELIMINAR UN PRODUCTO ESPECÍFICO
-  async function handleEliminarProducto(idProducto, nombreProducto) {
-    const confirmar = window.confirm(`¿Estás seguro de que deseas eliminar "${nombreProducto}"?`);
-    if (!confirmar) return;
-
-    const token = obtenerToken();
-    if (!token) return;
-
-    try {
-      const res = await fetch(`http://localhost:3000/api/productos/${idProducto}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        await fetchData();
-        alert(`El producto "${nombreProducto}" ha sido eliminado.`);
-      } else {
-        const data = await res.json();
-        alert(`Error: ${data.error || 'No se pudo eliminar el producto'}`);
-      }
-    } catch (err) {
-      console.error('Error al eliminar producto:', err);
-      alert('Ocurrió un error al intentar eliminar el producto.');
-    }
-  }
-
-  // ALTERNAR ESTADO AGOTADO HOY
-  async function handleToggleAgotado(idProducto, estadoActual) {
-    const token = obtenerToken();
-    if (!token) return;
-
-    try {
-      const res = await fetch(`http://localhost:3000/api/productos/${idProducto}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ agotadoHoy: !estadoActual }),
-      });
-
-      if (res.ok) {
-        await fetchData();
-      } else {
-        const data = await res.json();
-        alert(`Error al actualizar estado: ${data.error || 'No se pudo actualizar'}`);
-      }
-    } catch (err) {
-      console.error('Error al cambiar estado de agotado:', err);
-      alert('Ocurrió un error al intentar actualizar el estado del producto.');
-    }
-  }
-
-  const productosFiltrados = categoriaSeleccionada
-    ? productos.filter((p) => p.categoria_id === Number(categoriaSeleccionada))
-    : productos;
+  const cantidadPorCategoria = (id) => productos?.filter((p) => p.categoria_id === id).length ?? 0;
 
   return (
     <main className="pagina">
-      <Encabezado titulo="Gestión de la Carta" />
+      <Encabezado titulo="Carta" volver />
 
-      {/* 1. Formulario para Crear Categoría y Listado de Categorías Existentes */}
-      <section className="seccion-formulario" style={{ marginBottom: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
-        <h3>1. Gestión de Categorías</h3>
-        <form onSubmit={handleCrearCategoria} style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-          <input
-            type="text"
-            placeholder="Ej. Bebidas, Entradas, Carnes..."
-            value={nuevaCategoria}
-            onChange={(e) => setNuevaCategoria(e.target.value)}
-            required
-            style={{ flex: 1, padding: '0.5rem' }}
-          />
-          <button type="submit" className="btn-primario" style={{ padding: '0.5rem 1rem' }}>
-            Agregar Categoría
-          </button>
+      {editando === null && (
+        <button type="button" className="boton ancho" onClick={abrirNuevo}>
+          Nuevo producto
+        </button>
+      )}
+
+      {error && (
+        <p className="alerta" role="alert">
+          {error}
+        </p>
+      )}
+      {exito && (
+        <p className="aviso-ok" role="status">
+          {exito}
+        </p>
+      )}
+
+      {editando !== null && (
+        <form className="bloque formulario" onSubmit={guardarProducto} noValidate>
+          <h2 className="seccion-titulo">
+            {editando === 'nuevo' ? 'Nuevo producto' : 'Editar producto'}
+          </h2>
+          <div className="campo">
+            <label htmlFor="p-categoria">Categoría</label>
+            <select id="p-categoria" value={form.categoriaId} onChange={cambiar('categoriaId')}>
+              <option value="">Selecciona…</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="p-nombre">Nombre</label>
+            <input id="p-nombre" value={form.nombre} onChange={cambiar('nombre')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="p-descripcion">Descripción (opcional)</label>
+            <input id="p-descripcion" value={form.descripcion} onChange={cambiar('descripcion')} />
+          </div>
+          <div className="campo">
+            <label htmlFor="p-precio">Precio</label>
+            <input
+              id="p-precio"
+              inputMode="numeric"
+              placeholder="23000"
+              value={form.precio}
+              onChange={cambiar('precio')}
+            />
+            {editando !== 'nuevo' && (
+              <small>Un precio nuevo aplica solo a los pedidos que se tomen desde ahora.</small>
+            )}
+          </div>
+          <div className="acciones">
+            <button type="button" className="boton secundario" onClick={() => setEditando(null)}>
+              Cancelar
+            </button>
+            <button type="submit" className="boton" disabled={guardando}>
+              {guardando ? 'Guardando…' : 'Guardar'}
+            </button>
+          </div>
         </form>
+      )}
 
-        {/* Lista de categorías existentes con opción de eliminar */}
-        <div style={{ marginTop: '1.5rem' }}>
-          <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem', color: '#555' }}>Categorías registradas:</h4>
-          {categorias.length === 0 ? (
-            <p style={{ color: '#666', fontStyle: 'italic', fontSize: '0.9rem' }}>No hay categorías registradas.</p>
+      <div className="campo">
+        <label htmlFor="filtro-categoria">Ver categoría</label>
+        <select id="filtro-categoria" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          <option value="">Toda la carta</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {!productos && !error && <p className="nota">Cargando la carta…</p>}
+
+      {grupos.map((c) => (
+        <section key={c.id} className="bloque" aria-labelledby={`cat-${c.id}`}>
+          <h2 id={`cat-${c.id}`} className="seccion-titulo">
+            {c.nombre}
+          </h2>
+          {!c.activa && <p className="nota">Categoría oculta: no sale en los pedidos.</p>}
+          {c.productos.length === 0 ? (
+            <p className="nota">Todavía no hay productos en esta categoría.</p>
           ) : (
-            <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {categorias.map((cat) => (
-                <li key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8f9fa', padding: '0.5rem 1rem', borderRadius: '4px' }}>
-                  <span>{cat.nombre}</span>
-                  <button
-                    onClick={() => handleEliminarCategoria(cat.id, cat.nombre)}
-                    style={{
-                      backgroundColor: '#e74c3c',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '0.3rem 0.6rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    Eliminar Categoría
-                  </button>
-                </li>
+            <ul className="carta">
+              {c.productos.map((p) => (
+                <LineaCarta
+                  key={p.id}
+                  nombre={p.nombre}
+                  precio={p.precio}
+                  descripcion={p.descripcion}
+                  className={`producto ${p.activo ? '' : 'inactivo'}`}
+                >
+                  {(!p.activo || p.agotado_hoy) && (
+                    <span className={`chip ${p.activo ? 'ocupada' : 'por-cobrar'}`}>
+                      {p.activo ? 'Agotado hoy' : 'Desactivado'}
+                    </span>
+                  )}
+                  <div className="acciones">
+                    {p.activo && (
+                      <button
+                        type="button"
+                        className="boton secundario chico"
+                        aria-pressed={p.agotado_hoy}
+                        aria-label={`Agotado hoy: ${p.nombre}`}
+                        onClick={() => alternarAgotado(p)}
+                      >
+                        Agotado hoy
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="boton secundario chico"
+                      aria-label={`Editar ${p.nombre}`}
+                      onClick={() => abrirEdicion(p)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="boton secundario chico"
+                      aria-label={`${p.activo ? 'Desactivar' : 'Activar'} ${p.nombre}`}
+                      onClick={() => alternarActivo(p)}
+                    >
+                      {p.activo ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </div>
+                </LineaCarta>
               ))}
             </ul>
           )}
-        </div>
-      </section>
+        </section>
+      ))}
 
-      {/* 2. Formulario para Crear Producto */}
-      <section className="seccion-formulario" style={{ marginBottom: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
-        <h3>2. Agregar Nuevo Producto</h3>
-        <form onSubmit={handleCrearProducto} style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-          <div>
-            <label>Categoría: </label>
-            <select
-              value={nuevoProducto.categoriaId}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, categoriaId: e.target.value })}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            >
-              <option value="">
-                {categorias.length === 0 ? 'No hay categorías creadas' : 'Seleccione una categoría'}
-              </option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label>Nombre: </label>
+      <details className="bloque categorias">
+        <summary>Categorías de la carta</summary>
+        <form className="fila-formulario" onSubmit={agregarCategoria}>
+          <div className="campo">
+            <label htmlFor="nueva-categoria">Nueva categoría</label>
             <input
-              type="text"
-              value={nuevoProducto.nombre}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
+              id="nueva-categoria"
+              placeholder="Ej.: Postres"
+              value={nuevaCategoria}
+              onChange={(e) => setNuevaCategoria(e.target.value)}
             />
           </div>
-
-          <div>
-            <label>Descripción: </label>
-            <input
-              type="text"
-              value={nuevoProducto.descripcion}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, descripcion: e.target.value })}
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
-          </div>
-
-          <div>
-            <label>Precio ($): </label>
-            <input
-              type="number"
-              value={nuevoProducto.precio}
-              onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio: e.target.value })}
-              required
-              style={{ width: '100%', padding: '0.5rem' }}
-            />
-          </div>
-
-          <button type="submit" className="btn-primario" style={{ padding: '0.7rem' }}>
-            Guardar Producto
+          <button type="submit" className="boton">
+            Agregar
           </button>
         </form>
-      </section>
-
-      <hr />
-
-      {/* 3. Carta Actual, Filtro y Eliminación */}
-      <section className="seccion-carta" style={{ marginTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3>Carta Actual</h3>
-          <div>
-            <label>Filtrar por categoría: </label>
-            <select
-              value={categoriaSeleccionada}
-              onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-              style={{ padding: '0.4rem' }}
-            >
-              <option value="">Todas las categorías</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <ul className="lista-carta" style={{ listStyle: 'none', padding: 0, marginTop: '1rem' }}>
-          {productosFiltrados.length === 0 ? (
-            <p style={{ color: '#666', fontStyle: 'italic' }}>No hay productos registrados en esta categoría.</p>
-          ) : (
-            productosFiltrados.map((p) => (
-              <li 
-                key={p.id} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  marginBottom: '0.5rem',
-                  opacity: p.agotado_hoy ? 0.6 : 1,
-                  background: p.agotado_hoy ? '#f9f9f9' : '#fff',
-                  padding: '0.5rem',
-                  borderRadius: '4px'
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <LineaCarta
-                    nombre={p.nombre}
-                    precio={p.precio}
-                    descripcion={p.descripcion}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(p.agotado_hoy)}
-                      onChange={() => handleToggleAgotado(p.id, Boolean(p.agotado_hoy))}
-                    />
-                    Agotado hoy
-                  </label>
-
+        <ul className="lista-categorias">
+          {categorias.map((c) => {
+            const cantidad = cantidadPorCategoria(c.id);
+            return (
+              <li key={c.id} className={c.activa ? '' : 'inactivo'}>
+                <span>
+                  <strong>{c.nombre}</strong>
+                  <small>
+                    {cantidad} {cantidad === 1 ? 'producto' : 'productos'}
+                    {!c.activa && ' · oculta'}
+                  </small>
+                </span>
+                <div className="acciones">
                   <button
-                    onClick={() => handleEliminarProducto(p.id, p.nombre)}
-                    style={{
-                      backgroundColor: '#e74c3c',
-                      color: '#fff',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
+                    type="button"
+                    className="boton secundario chico"
+                    onClick={() => alternarCategoria(c)}
                   >
-                    Eliminar
+                    {c.activa ? 'Ocultar' : 'Mostrar'}
                   </button>
+                  {cantidad === 0 && (
+                    <button
+                      type="button"
+                      className="boton secundario chico"
+                      onClick={() => borrarCategoria(c)}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               </li>
-            ))
-          )}
+            );
+          })}
         </ul>
-      </section>
+      </details>
     </main>
   );
 }
