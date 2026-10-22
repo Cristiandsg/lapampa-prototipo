@@ -39,6 +39,11 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | GET | `/productos/:id` | Con sesión | Un producto |
 | POST | `/productos` | Propietario | `{ categoriaId, nombre, descripcion?, precio }`; precio mayor a cero (409 si el nombre ya existe) |
 | PATCH | `/productos/:id` | Propietario; mesero y cajero solo `agotadoHoy` | Cualquiera de `{ categoriaId, nombre, descripcion, precio, activo, agotadoHoy }`. No hay DELETE: los productos se desactivan con `{ "activo": false }` |
+| GET | `/mesas` | Con sesión | Mesas activas de la jornada con su estado (`libre`, `ocupada`, `por_cobrar`), quién la creó y el resumen del pedido vigente (`pedido: { id, total, minutos }` o `null`) |
+| POST | `/mesas` | Mesero, propietario | `{ nombre }` libre, de 1 a 40 caracteres (409 si ya hay una mesa activa con ese nombre, sin importar mayúsculas ni tildes) |
+| PATCH | `/mesas/:id` | Mesero, propietario | `{ nombre }`: renombrar. 409 si tiene pedido abierto o si el nombre ya está en uso |
+| DELETE | `/mesas/:id` | Mesero, propietario | Desactiva la mesa (no la borra). 409 si tiene pedido abierto |
+| POST | `/mesas/quitar-libres` | Mesero, propietario | Al cerrar la jornada: desactiva todas las mesas libres y responde `{ cantidad }` |
 | * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
@@ -47,6 +52,12 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Los productos no se borran: se desactivan, para no romper los pedidos ya registrados.
 - Un cambio de precio solo aplica a los pedidos nuevos: cada `detalle_pedido` guarda el precio del momento.
 - "Agotado hoy" oculta un producto de los pedidos de la jornada sin desactivarlo; lo pueden marcar el propietario, el cajero y el mesero.
+
+## Reglas de las mesas (HU03)
+
+- No hay mesas fijas: el mesero crea las de la jornada con el nombre que quiera. El nombre es único solo entre las mesas activas (columna generada `nombre_activo`), así que "Terraza 1" se puede volver a crear otro día.
+- Renombrar y eliminar bloquean la mesa con `SELECT ... FOR UPDATE` y revisan que no tenga un pedido `abierto` o `por_cobrar`: si otro mesero está abriendo un pedido en ese instante (HU04), uno espera al otro.
+- Cada creación, cambio de nombre y eliminación queda en `historial_cambio` con quién lo hizo.
 
 ## Reglas de las cuentas
 

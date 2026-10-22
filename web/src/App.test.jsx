@@ -13,6 +13,7 @@ vi.mock('./services/api', async (original) => ({
   listarUsuarios: vi.fn(),
   crearUsuario: vi.fn(),
   actualizarUsuario: vi.fn(),
+  listarMesas: vi.fn().mockResolvedValue([]),
 }));
 
 // Token con el formato de un JWT; solo importa el campo "exp" (en segundos).
@@ -72,7 +73,8 @@ describe('Ingreso (HU01)', () => {
     await usuario.type(screen.getByLabelText('Contraseña'), 'LaPampa2026*');
     await usuario.click(screen.getByRole('button', { name: 'Ingresar' }));
 
-    expect(await screen.findByRole('heading', { name: 'Hola, Mesero' })).toBeInTheDocument();
+    // El mesero entra directo a sus mesas (mockup aprobado)
+    expect(await screen.findByRole('heading', { name: 'Mesas de hoy' })).toBeInTheDocument();
     expect(api.iniciarSesion).toHaveBeenCalledWith('mesero', 'LaPampa2026*');
     expect(JSON.parse(localStorage.getItem('lapampa.sesion')).token).toBe(token);
   });
@@ -118,11 +120,11 @@ describe('Menú según el rol (HU01)', () => {
       .getAllByRole('listitem')
       .map((li) => li.querySelector('.opcion-titulo').textContent);
 
-  it('el mesero solo ve mesas y pedidos', async () => {
+  it('el mesero no tiene menú: entra directo a "Mesas de hoy", sin botón de volver', async () => {
     conSesion('mesero');
     abrir('/');
-    await screen.findByRole('heading', { name: 'Hola, Mesero' });
-    expect(opcionesVisibles()).toEqual(['Mesas y pedidos']);
+    expect(await screen.findByRole('heading', { name: 'Mesas de hoy' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Volver al menú' })).not.toBeInTheDocument();
   });
 
   it('el cajero ve caja y domicilios, sin reportes ni usuarios', async () => {

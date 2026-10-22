@@ -7,6 +7,7 @@ export const OPCIONES = [
     descripcion: 'Crear las mesas de la jornada y tomar pedidos',
     roles: ['mesero', 'propietario'],
     sprint: 1,
+    disponible: true,
   },
   {
     ruta: '/carta',
