@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import Encabezado from '../components/Encabezado';
 import { useSesion } from '../sesion/SesionContext';
 import { opcionesDe } from '../sesion/menu';
@@ -6,6 +6,8 @@ import { opcionesDe } from '../sesion/menu';
 // Menú principal: cambia según el rol de quien inició sesión (HU01).
 export default function Panel() {
   const { usuario } = useSesion();
+  // El mesero solo trabaja con mesas: entra directo a "Mesas de hoy" (mockup aprobado).
+  if (usuario.rol === 'mesero') return <Navigate to="/mesas" replace />;
   const primerNombre = usuario.nombre.split(' ')[0];
   const opciones = opcionesDe(usuario.rol);
 

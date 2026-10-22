@@ -111,4 +111,29 @@ export async function actualizarProducto(id, cambios) {
   return data;
 }
 
+// ---------- Mesas (HU03) ----------
+export async function listarMesas() {
+  const { data } = await api.get('/mesas');
+  return data;
+}
+
+export async function crearMesa(nombre) {
+  const { data } = await api.post('/mesas', { nombre });
+  return data;
+}
+
+export async function renombrarMesa(id, nombre) {
+  const { data } = await api.patch(`/mesas/${id}`, { nombre });
+  return data;
+}
+
+export async function eliminarMesa(id) {
+  await api.delete(`/mesas/${id}`);
+}
+
+export async function quitarMesasLibres() {
+  const { data } = await api.post('/mesas/quitar-libres');
+  return data.cantidad;
+}
+
 export default api;

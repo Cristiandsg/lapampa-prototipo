@@ -545,6 +545,105 @@ details.categorias summary {
   color: var(--cafe-suave);
 }
 
+/* ---------- Mesas (HU03) ---------- */
+.filtros {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin: 0 -16px;
+  padding-inline: 16px;
+}
+.filtro {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--linea);
+  background: var(--papel);
+  color: var(--cafe);
+  font: 600 0.85rem var(--texto);
+  cursor: pointer;
+}
+.filtro[aria-pressed='true'] {
+  background: var(--cafe);
+  border-color: var(--cafe);
+  color: var(--papel);
+}
+.mesas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.mesa {
+  width: 100%;
+  min-height: 118px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  color: var(--cafe);
+  font: inherit;
+}
+.mesa:active {
+  background: var(--crema);
+}
+.mesa .chip {
+  align-self: flex-start;
+}
+.mesa-nombre {
+  font-weight: 700;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.mesa-detalle {
+  font-size: 0.82rem;
+  color: var(--cafe-suave);
+}
+.boton.peligro {
+  background: transparent;
+  border-color: var(--achiote);
+  color: var(--achiote);
+}
+
+/* Hoja inferior de opciones (se abre al tocar una mesa) */
+.fondo-hoja {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(46, 32, 16, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.hoja {
+  width: 100%;
+  max-width: 560px;
+  background: var(--crema);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 14px;
+}
+.hoja-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hoja-cabeza h2 {
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;
