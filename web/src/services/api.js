@@ -136,4 +136,16 @@ export async function quitarMesasLibres() {
   return data.cantidad;
 }
 
+// ---------- Pedidos (HU04) ----------
+// datos: { mesaId, items: [{ productoId, cantidad, nota }], observaciones }
+export async function crearPedido(datos) {
+  const { data } = await api.post('/pedidos', datos);
+  return data;
+}
+
+export async function obtenerPedido(id) {
+  const { data } = await api.get(`/pedidos/${id}`);
+  return data;
+}
+
 export default api;

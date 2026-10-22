@@ -44,6 +44,8 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | PATCH | `/mesas/:id` | Mesero, propietario | `{ nombre }`: renombrar. 409 si tiene pedido abierto o si el nombre ya está en uso |
 | DELETE | `/mesas/:id` | Mesero, propietario | Desactiva la mesa (no la borra). 409 si tiene pedido abierto |
 | POST | `/mesas/quitar-libres` | Mesero, propietario | Al cerrar la jornada: desactiva todas las mesas libres y responde `{ cantidad }` |
+| POST | `/pedidos` | Mesero, propietario | `{ mesaId, items: [{ productoId, cantidad (1-99), nota? }], observaciones? }`. Responde el pedido con número (`id`), hora, mesero, detalle y `comanda`. 409 si la mesa ya tiene pedido o un producto está agotado o desactivado; 400 sin productos |
+| GET | `/pedidos/:id` | Con sesión | Pedido con mesa, mesero, detalle (precio guardado en el momento del pedido), total y comanda |
 | * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
@@ -58,6 +60,13 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - No hay mesas fijas: el mesero crea las de la jornada con el nombre que quiera. El nombre es único solo entre las mesas activas (columna generada `nombre_activo`), así que "Terraza 1" se puede volver a crear otro día.
 - Renombrar y eliminar bloquean la mesa con `SELECT ... FOR UPDATE` y revisan que no tenga un pedido `abierto` o `por_cobrar`: si otro mesero está abriendo un pedido en ese instante (HU04), uno espera al otro.
 - Cada creación, cambio de nombre y eliminación queda en `historial_cambio` con quién lo hizo.
+
+## Reglas de los pedidos (HU04)
+
+- Todo va en una sola transacción: se bloquea la mesa (`SELECT ... FOR UPDATE`), se revisa que esté libre, se toma el precio actual de cada producto, se guardan pedido y detalle, la mesa pasa a `ocupada`, la comanda queda en `trabajo_impresion` (cocina) y el registro en `historial_cambio`. Si algo falla, no queda nada a medias.
+- Si dos meseros abren la misma mesa a la vez, uno espera al otro y el segundo recibe 409.
+- El número del pedido es su `id` (consecutivo). Las líneas con el mismo producto y la misma nota se juntan.
+- La conexión a la base trabaja en hora de Colombia (`SET time_zone = '-05:00'` en `api/src/config/db.js`).
 
 ## Reglas de las cuentas
 

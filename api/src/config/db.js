@@ -12,4 +12,10 @@ const pool = mysql.createPool({
   decimalNumbers: true,
 });
 
+// Cada conexión trabaja en hora de Colombia: así NOW() y CURRENT_TIMESTAMP coinciden
+// con la hora del local aunque el servidor de la base esté en UTC (Aiven).
+pool.pool.on('connection', (conexion) => {
+  conexion.query("SET time_zone = '-05:00'");
+});
+
 module.exports = pool;

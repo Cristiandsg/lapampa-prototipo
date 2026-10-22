@@ -14,6 +14,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   // Cada prueba arranca sin mesas activas
+  await pool.query('DELETE FROM trabajo_impresion');
   await pool.query('DELETE FROM detalle_pedido');
   await pool.query('DELETE FROM pedido');
   await pool.query('UPDATE mesa SET activa = FALSE');
