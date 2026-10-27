@@ -168,4 +168,23 @@ export async function quitarDelPedido(pedidoId, itemId, motivo) {
   return data;
 }
 
+// ---------- Cuenta (HU06) ----------
+// El pedido pasa a 'por cobrar' y responde con `cuenta`: el texto de la tirilla de caja
+export async function cerrarPedido(pedidoId) {
+  const { data } = await api.patch(`/pedidos/${pedidoId}/cerrar`);
+  return data;
+}
+
+// El cliente pidió algo más después de la cuenta: vuelve a 'abierto' (con motivo)
+export async function reabrirPedido(pedidoId, motivo) {
+  const { data } = await api.patch(`/pedidos/${pedidoId}/reabrir`, { motivo });
+  return data;
+}
+
+// Bandeja del cajero: [{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]
+export async function listarPorCobrar() {
+  const { data } = await api.get('/caja/por-cobrar');
+  return data;
+}
+
 export default api;

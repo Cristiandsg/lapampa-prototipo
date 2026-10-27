@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Encabezado from '../components/Encabezado';
+import Hoja from '../components/Hoja';
 import HojaLinea from '../components/HojaLinea';
 import LineaCarta, { pesos } from '../components/LineaCarta';
 import { useSesion } from '../sesion/SesionContext';
-import { mensajeDeError, obtenerPedido } from '../services/api';
+import { cerrarPedido, mensajeDeError, obtenerPedido, reabrirPedido } from '../services/api';
 
 const ESTADO = {
   abierto: { texto: 'Abierto', chip: 'ocupada' },
@@ -14,6 +15,8 @@ const ESTADO = {
 };
 
 const REFRESCO_MS = 15000; // otro mesero puede estar cambiando el mismo pedido
+
+const MOTIVOS_REABRIR = ['El cliente pidió algo más', 'Error en la cuenta'];
 
 function hora(fecha) {
   return new Date(fecha).toLocaleTimeString('es-CO', {
@@ -36,6 +39,10 @@ function textoCambio(h) {
       return `Quitó ${h.valor_anterior}`;
     case 'anular':
       return 'Anuló el pedido';
+    case 'cerrar':
+      return 'Generó la cuenta';
+    case 'reabrir':
+      return 'Reabrió el pedido';
     default:
       return h.accion;
   }
@@ -44,6 +51,7 @@ function textoCambio(h) {
 // HU04 — El pedido de una mesa: lo que se pidió, el total y la comanda que va a cocina.
 // HU05 — Mientras está abierto, el mesero agrega productos, cambia cantidades o notas
 // y quita lo que el cliente ya no quiere (con motivo). Todo queda en el historial.
+// HU06 — "Generar la cuenta" pasa el pedido a 'por cobrar' y lo manda a la bandeja de caja.
 export default function VerPedido() {
   const { id } = useParams();
   const { state, pathname } = useLocation();
@@ -57,6 +65,9 @@ export default function VerPedido() {
   );
   const [ajuste, setAjuste] = useState(state?.ajuste ?? null);
   const [editando, setEditando] = useState(null); // línea abierta en la hoja
+  const [hoja, setHoja] = useState(null); // 'cuenta' | 'reabrir'
+  const [motivo, setMotivo] = useState('');
+  const [trabajando, setTrabajando] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -77,14 +88,47 @@ export default function VerPedido() {
 
   // Se actualiza solo, pero no mientras la hoja de cambios está abierta
   useEffect(() => {
-    if (editando || pedido?.estado !== 'abierto') return undefined;
+    if (editando || hoja || pedido?.estado !== 'abierto') return undefined;
     const intervalo = setInterval(() => {
       if (document.visibilityState === 'visible') cargar();
     }, REFRESCO_MS);
     return () => clearInterval(intervalo);
-  }, [cargar, editando, pedido?.estado]);
+  }, [cargar, editando, hoja, pedido?.estado]);
 
   const cerrarHoja = useCallback(() => setEditando(null), []);
+  const cerrarHojaCuenta = useCallback(() => setHoja(null), []);
+
+  // Corre una acción sobre el pedido (cerrar, reabrir). Si otro celular lo cambió antes,
+  // avisa y recarga.
+  async function ejecutar(accion, mensaje) {
+    setTrabajando(true);
+    setAlerta(null);
+    try {
+      const actualizado = await accion();
+      setPedido(actualizado);
+      setAjuste(null);
+      setAviso(mensaje(actualizado));
+    } catch (err) {
+      setAviso(null);
+      setAlerta(mensajeDeError(err));
+      if ([404, 409].includes(err.response?.status)) cargar();
+    } finally {
+      setHoja(null);
+      setTrabajando(false);
+    }
+  }
+
+  const generarCuenta = () =>
+    ejecutar(
+      () => cerrarPedido(pedido.id),
+      (p) => `Cuenta generada. La mesa «${p.mesa}» pasó a «por cobrar» y ya está en la caja.`,
+    );
+
+  const reabrir = () =>
+    ejecutar(
+      () => reabrirPedido(pedido.id, motivo.trim()),
+      () => 'Pedido reabierto. Ya puedes agregar o cambiar productos.',
+    );
 
   function alGuardar(actualizado) {
     setEditando(null);
@@ -105,7 +149,13 @@ export default function VerPedido() {
     cargar();
   }
 
-  const volver = { volver: true, volverA: '/mesas', etiquetaVolver: 'Volver a mesas' };
+  // El cajero llega desde la caja; meseros y propietario, desde las mesas
+  const desdeCaja = usuario.rol === 'cajero';
+  const volver = {
+    volver: true,
+    volverA: desdeCaja ? '/caja' : '/mesas',
+    etiquetaVolver: desdeCaja ? 'Volver a caja' : 'Volver a mesas',
+  };
 
   if (errorCarga) {
     return (
@@ -126,8 +176,10 @@ export default function VerPedido() {
     );
   }
 
-  const puedeEditar =
-    pedido.estado === 'abierto' && ['mesero', 'propietario'].includes(usuario.rol);
+  const abierto = pedido.estado === 'abierto';
+  const puedeEditar = abierto && ['mesero', 'propietario'].includes(usuario.rol);
+  const puedeCerrar = abierto && pedido.items.length > 0; // los tres roles
+  const porCobrar = pedido.estado === 'por_cobrar';
   const estado = ESTADO[pedido.estado];
 
   return (
@@ -194,10 +246,38 @@ export default function VerPedido() {
         </div>
       </section>
 
+      {puedeCerrar && (
+        <button type="button" className="boton ancho" onClick={() => setHoja('cuenta')}>
+          Generar la cuenta
+        </button>
+      )}
       {puedeEditar && (
-        <Link to={`/pedidos/${pedido.id}/agregar`} className="boton ancho">
+        <Link to={`/pedidos/${pedido.id}/agregar`} className="boton secundario ancho">
           <span aria-hidden="true">+&nbsp;</span>Agregar productos
         </Link>
+      )}
+
+      {porCobrar && (
+        <details className="bloque" open>
+          <summary>Cuenta para el cliente</summary>
+          <pre className="tirilla" aria-label="Cuenta">
+            {pedido.cuenta}
+          </pre>
+          <p className="nota">
+            Sale por la impresora de caja cuando esté conectada al sistema. El cobro se registra en
+            Caja.
+          </p>
+          <button
+            type="button"
+            className="boton secundario ancho"
+            onClick={() => {
+              setMotivo('');
+              setHoja('reabrir');
+            }}
+          >
+            Reabrir pedido
+          </button>
+        </details>
       )}
 
       {ajuste && (
@@ -236,9 +316,76 @@ export default function VerPedido() {
         </details>
       )}
 
-      <Link to="/mesas" className="boton secundario ancho">
-        Volver a mesas
+      <Link to={volver.volverA} className="boton secundario ancho">
+        {volver.etiquetaVolver}
       </Link>
+
+      {hoja === 'cuenta' && (
+        <Hoja
+          titulo={`Cuenta de ${pedido.mesa}`}
+          onCerrar={cerrarHojaCuenta}
+          acciones={
+            <button
+              type="button"
+              className="boton ancho"
+              disabled={trabajando}
+              onClick={generarCuenta}
+            >
+              {trabajando ? 'Generando…' : 'Sí, generar la cuenta'}
+            </button>
+          }
+        >
+          <pre className="tirilla" aria-label="Vista previa de la cuenta">
+            {pedido.cuenta}
+          </pre>
+          <p className="nota">
+            Después de generarla, el pedido ya no se puede cambiar. Si el cliente pide algo más, se
+            puede reabrir.
+          </p>
+        </Hoja>
+      )}
+
+      {hoja === 'reabrir' && (
+        <Hoja
+          titulo="Reabrir pedido"
+          onCerrar={cerrarHojaCuenta}
+          acciones={
+            <button
+              type="button"
+              className="boton ancho"
+              disabled={trabajando || motivo.trim().length < 3}
+              onClick={reabrir}
+            >
+              {trabajando ? 'Reabriendo…' : 'Reabrir pedido'}
+            </button>
+          }
+        >
+          <p>La cuenta sale de la caja y el pedido vuelve a quedar abierto.</p>
+          <div className="campo">
+            <label htmlFor="motivo-reabrir">Motivo</label>
+            <div className="chips-motivo" role="group" aria-label="Motivos frecuentes">
+              {MOTIVOS_REABRIR.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className="filtro"
+                  aria-pressed={motivo === m}
+                  onClick={() => setMotivo(m)}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <input
+              id="motivo-reabrir"
+              maxLength={150}
+              placeholder="O escríbelo aquí"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+          </div>
+        </Hoja>
+      )}
 
       {editando && (
         <HojaLinea

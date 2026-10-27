@@ -49,7 +49,10 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | POST | `/pedidos/:id/items` | Mesero, propietario | `{ items: [{ productoId, cantidad (1-99), nota? }] }`: agrega productos a un pedido abierto. Responde el pedido actualizado y `ajuste` (la tirilla de "ADICIÓN" para cocina). 409 si el pedido no está abierto o un producto está agotado |
 | PUT | `/pedidos/:id/items/:itemId` | Mesero, propietario | Cualquiera de `{ cantidad, nota }`, más `motivo` (3 a 150 caracteres), obligatorio si baja la cantidad. Responde el pedido y `ajuste` (`null` si no cambió nada) |
 | DELETE | `/pedidos/:id/items/:itemId` | Mesero, propietario | `{ motivo }` obligatorio. Quita la línea; si era la única, el pedido queda `cancelado` y la mesa `libre`. 404 si la línea ya no está en el pedido |
-| * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
+| PATCH | `/pedidos/:id/cerrar` | Mesero, propietario, cajero | Cierra el pedido y genera la cuenta: pedido y mesa pasan a `por_cobrar` y la cuenta queda en la cola de la impresora de caja. Responde el pedido con `cuenta` (texto de la tirilla). 409 si no está abierto |
+| PATCH | `/pedidos/:id/reabrir` | Mesero, propietario, cajero | `{ motivo }` obligatorio. Devuelve un pedido `por_cobrar` a `abierto` (el cliente pidió algo más). 409 si no está por cobrar o ya tiene pagos |
+| GET | `/caja/por-cobrar` | Propietario, cajero | Bandeja del cajero: `[{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]`, la más antigua primero. El mesero recibe 403 |
+| * | `/caja/...` | Propietario, cajero | Pagos y cierre de caja: HU07 |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
 ## Reglas de la carta (HU02)
@@ -80,6 +83,15 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Quitar el único producto anula el pedido y deja la mesa libre (decisión del PO: el cliente se fue sin consumir).
 - Cada cambio queda en `historial_cambio` (`agregar_item`, `cambiar_item`, `quitar_item`, `anular`) con el antes, el después, el motivo y el usuario.
 - Bloqueo: mesa y luego pedido con `SELECT ... FOR UPDATE`, en el mismo orden que HU03 y HU04. Si dos celulares cambian el mismo pedido a la vez, el segundo espera y trabaja sobre el pedido ya actualizado (si la línea ya no existe, recibe 404).
+
+## Reglas de la cuenta (HU06)
+
+- Todo pedido trae `cuenta` (el texto de la tirilla de caja) y `propina_sugerida`. En un pedido abierto, la cuenta es la vista previa.
+- Al cerrar, el subtotal se recalcula del detalle: la cuenta siempre cuadra con lo que hay en el pedido, incluidos los cambios de HU05.
+- La cuenta dice "CUENTA" y "Este documento no es factura" (la facturación electrónica DIAN está fuera del alcance).
+- La propina sugerida es el 10 % del subtotal y va **aparte**: la cuenta dice que es voluntaria (Ley 1935 de 2018) y nunca se suma al total. El cliente la decide al pagar (HU08).
+- Después de generar la cuenta el pedido no admite cambios. Si el cliente pide algo más, se **reabre** con motivo (queda en el historial), siempre que no tenga pagos.
+- Si dos celulares generan la cuenta a la vez, sale una sola (el segundo recibe 409).
 
 ## Reglas de las cuentas
 

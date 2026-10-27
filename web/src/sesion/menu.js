@@ -20,9 +20,10 @@ export const OPCIONES = [
   {
     ruta: '/caja',
     titulo: 'Caja',
-    descripcion: 'Cobrar cuentas, pagos y propinas',
+    descripcion: 'Cuentas por cobrar, pagos y propinas',
     roles: ['cajero', 'propietario'],
     sprint: 2,
+    disponible: true,
   },
   {
     ruta: '/domicilios',

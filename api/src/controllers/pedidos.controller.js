@@ -77,4 +77,36 @@ function quitarItem(req, res) {
   );
 }
 
-module.exports = { crear, obtener, agregarItems, cambiarItem, quitarItem };
+// PATCH /api/pedidos/:id/cerrar — HU06: cerrar el pedido y generar la cuenta
+function cerrar(req, res) {
+  return responder(res, () =>
+    pedidoModel.cerrar({ pedidoId: Number(req.params.id), usuario: quien(req) }),
+  );
+}
+
+// PATCH /api/pedidos/:id/reabrir — HU06: el cliente pidió algo más después de la cuenta
+function reabrir(req, res) {
+  return responder(res, () =>
+    pedidoModel.reabrir({
+      pedidoId: Number(req.params.id),
+      motivo: req.body.motivo.trim(),
+      usuario: quien(req),
+    }),
+  );
+}
+
+// GET /api/caja/por-cobrar — HU06: bandeja del cajero
+async function porCobrar(req, res) {
+  res.json(await pedidoModel.listarPorCobrar());
+}
+
+module.exports = {
+  crear,
+  obtener,
+  agregarItems,
+  cambiarItem,
+  quitarItem,
+  cerrar,
+  reabrir,
+  porCobrar,
+};

@@ -93,4 +93,25 @@ router.delete(
   pedidos.quitarItem,
 );
 
+// HU06 — Cerrar el pedido y generar la cuenta. También la puede generar el cajero, cuando
+// el cliente se acerca a la caja a pagar.
+const conCuenta = permitirRoles('mesero', 'propietario', 'cajero');
+
+router.patch('/:id/cerrar', conCuenta, idPedido(), validar, pedidos.cerrar);
+
+router.patch(
+  '/:id/reabrir',
+  conCuenta,
+  idPedido(),
+  body('motivo')
+    .isString()
+    .withMessage('Escribe el motivo para reabrir el pedido.')
+    .bail()
+    .trim()
+    .isLength({ min: 3, max: 150 })
+    .withMessage('El motivo debe tener entre 3 y 150 caracteres.'),
+  validar,
+  pedidos.reabrir,
+);
+
 module.exports = router;

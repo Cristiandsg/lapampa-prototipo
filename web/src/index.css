@@ -876,6 +876,46 @@ details summary {
   color: var(--achiote);
 }
 
+/* ---------- Caja (HU06) ---------- */
+.lista-cuentas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.cuenta-caja {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 14px;
+  min-height: var(--tactil);
+  border: 1px solid var(--linea);
+  border-left: 5px solid var(--achiote);
+  border-radius: var(--radio);
+  background: var(--papel);
+  color: var(--cafe);
+  text-decoration: none;
+}
+.cuenta-caja:active {
+  background: var(--crema);
+}
+.cuenta-mesa {
+  font-weight: 700;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.cuenta-total {
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.cuenta-detalle {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  color: var(--cafe-suave);
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;

@@ -14,6 +14,9 @@ vi.mock('../services/api', async (original) => ({
   agregarAlPedido: vi.fn(),
   cambiarLineaPedido: vi.fn(),
   quitarDelPedido: vi.fn(),
+  cerrarPedido: vi.fn(),
+  reabrirPedido: vi.fn(),
+  listarPorCobrar: vi.fn(),
 }));
 
 const MESERO = { id: 3, nombre: 'Mesero de prueba', usuario: 'mesero', rol: 'mesero' };
@@ -53,6 +56,7 @@ const PEDIDO = {
     },
   ],
   comanda: 'LA PAMPA - COCINA\nMESA: Terraza 2',
+  cuenta: 'LA PAMPA GASTROBAR\nCUENTA\nTOTAL $53.000\nPropina sugerida (10 %) $5.300',
 };
 
 function tokenFalso() {
@@ -260,5 +264,119 @@ describe('Agregar productos al pedido (HU05)', () => {
         'El pedido #41 ya no está abierto: no se le pueden agregar productos.',
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe('Generar la cuenta (HU06)', () => {
+  const CERRADO = {
+    ...PEDIDO,
+    estado: 'por_cobrar',
+    cerrado_en: '2026-10-22T03:00:00.000Z',
+  };
+
+  it('muestra la vista previa y, al confirmar, la mesa pasa a por cobrar', async () => {
+    api.cerrarPedido.mockResolvedValue(CERRADO);
+    const usuario = userEvent.setup();
+    abrir('/pedidos/41');
+    await usuario.click(await screen.findByRole('button', { name: 'Generar la cuenta' }));
+
+    const hoja = screen.getByRole('dialog', { name: 'Cuenta de Terraza 2' });
+    expect(within(hoja).getByLabelText('Vista previa de la cuenta')).toHaveTextContent(
+      'Propina sugerida (10 %) $5.300',
+    );
+    await usuario.click(within(hoja).getByRole('button', { name: 'Sí, generar la cuenta' }));
+
+    expect(api.cerrarPedido).toHaveBeenCalledWith(41);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Cuenta generada. La mesa «Terraza 2» pasó a «por cobrar» y ya está en la caja.',
+    );
+    expect(screen.getByText('Por cobrar', { selector: '.chip' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Cuenta')).toHaveTextContent('TOTAL $53.000');
+    // Ya no se puede modificar
+    expect(screen.queryByRole('button', { name: /Cambiar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Agregar productos/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Generar la cuenta' })).not.toBeInTheDocument();
+  });
+
+  it('cancelar la vista previa no cierra el pedido', async () => {
+    const usuario = userEvent.setup();
+    abrir('/pedidos/41');
+    await usuario.click(await screen.findByRole('button', { name: 'Generar la cuenta' }));
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(api.cerrarPedido).not.toHaveBeenCalled();
+  });
+
+  it('si otro celular ya generó la cuenta, avisa y recarga', async () => {
+    api.cerrarPedido.mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          error:
+            'El pedido #41 ya tiene la cuenta generada: no se puede generar la cuenta otra vez.',
+        },
+      },
+    });
+    const usuario = userEvent.setup();
+    abrir('/pedidos/41');
+    await usuario.click(await screen.findByRole('button', { name: 'Generar la cuenta' }));
+    api.obtenerPedido.mockResolvedValue(CERRADO);
+    await usuario.click(screen.getByRole('button', { name: 'Sí, generar la cuenta' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('ya tiene la cuenta generada');
+    expect(await screen.findByLabelText('Cuenta')).toBeInTheDocument();
+  });
+
+  it('reabrir pide el motivo y deja el pedido abierto otra vez', async () => {
+    api.obtenerPedido.mockResolvedValue(CERRADO);
+    api.reabrirPedido.mockResolvedValue(PEDIDO);
+    const usuario = userEvent.setup();
+    abrir('/pedidos/41');
+    await usuario.click(await screen.findByRole('button', { name: 'Reabrir pedido' }));
+    const hoja = screen.getByRole('dialog', { name: 'Reabrir pedido' });
+    const boton = within(hoja).getByRole('button', { name: 'Reabrir pedido' });
+    expect(boton).toBeDisabled();
+    await usuario.click(within(hoja).getByRole('button', { name: 'El cliente pidió algo más' }));
+    await usuario.click(boton);
+    expect(api.reabrirPedido).toHaveBeenCalledWith(41, 'El cliente pidió algo más');
+    expect(await screen.findByRole('status')).toHaveTextContent('Pedido reabierto.');
+    expect(screen.getByRole('button', { name: 'Generar la cuenta' })).toBeInTheDocument();
+  });
+
+  it('el cajero también genera la cuenta y vuelve a la caja', async () => {
+    abrir('/pedidos/41', CAJERO);
+    expect(await screen.findByRole('button', { name: 'Generar la cuenta' })).toBeInTheDocument();
+    for (const enlace of screen.getAllByRole('link', { name: 'Volver a caja' })) {
+      expect(enlace).toHaveAttribute('href', '/caja');
+    }
+  });
+});
+
+describe('Caja: cuentas por cobrar (HU06)', () => {
+  it('lista las cuentas con mesa, total, mesero y abre cada una', async () => {
+    api.listarPorCobrar.mockResolvedValue([
+      { id: 41, mesa: 'Terraza 2', mesero: 'Ana', subtotal: 53000, productos: 3, minutos: 4 },
+      { id: 44, mesa: 'Barra', mesero: 'Luis', subtotal: 24000, productos: 1, minutos: 0 },
+    ]);
+    abrir('/caja', CAJERO);
+    const terraza = await screen.findByRole('link', { name: /Terraza 2/ });
+    expect(terraza).toHaveAttribute('href', '/pedidos/41');
+    expect(within(terraza).getByText('$53.000')).toBeInTheDocument();
+    expect(within(terraza).getByText(/Pedido #41 · 3 productos · Ana/)).toBeInTheDocument();
+    expect(within(terraza).getByText('Cuenta hace 4 min')).toBeInTheDocument();
+    expect(screen.getByText('Total por cobrar')).toBeInTheDocument();
+    expect(screen.getByText('$77.000')).toBeInTheDocument();
+  });
+
+  it('sin cuentas lo dice', async () => {
+    api.listarPorCobrar.mockResolvedValue([]);
+    abrir('/caja', CAJERO);
+    expect(await screen.findByText('No hay cuentas por cobrar.')).toBeInTheDocument();
+  });
+
+  it('el mesero no entra a la caja', async () => {
+    api.listarPorCobrar.mockResolvedValue([]);
+    abrir('/caja');
+    expect(await screen.findByRole('heading', { name: 'Sin permiso' })).toBeInTheDocument();
+    expect(api.listarPorCobrar).not.toHaveBeenCalled();
   });
 });
