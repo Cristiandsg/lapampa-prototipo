@@ -143,4 +143,35 @@ function armarCuenta(pedido, fecha = pedido.cerrado_en || new Date()) {
   return filas.join('\n');
 }
 
-module.exports = { armarComanda, armarAjuste, armarCuenta, ANCHO };
+const MEDIO = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+
+// HU07/HU08 — Comprobante de pago para el cliente (impresora de caja, HU16).
+// El consumo y la propina van en líneas separadas; el total pagado es la suma de los dos.
+// pedido: { id, mesa, pagado_en, subtotal, propina: { valor }, pagos: [{ medio, valor, referencia }] }
+function armarComprobante(pedido) {
+  const propina = pedido.propina?.valor ?? 0;
+  const filas = [
+    centrar('LA PAMPA GASTROBAR'),
+    linea('='),
+    centrar('COMPROBANTE DE PAGO'),
+    `MESA: ${pedido.mesa ?? 'Domicilio'}`.slice(0, ANCHO),
+    `Pedido #${pedido.id}`,
+    `Fecha: ${hora(pedido.pagado_en || new Date())}`,
+    linea(),
+    ...filaValor('Consumo', pedido.subtotal),
+    ...filaValor(propina ? 'Propina voluntaria' : 'Propina: no', propina),
+    linea(),
+    ...filaValor('TOTAL PAGADO', pedido.subtotal + propina),
+    linea('='),
+  ];
+  for (const pago of pedido.pagos ?? []) {
+    filas.push(...filaValor(MEDIO[pago.medio] ?? pago.medio, pago.valor));
+    if (pago.referencia) filas.push(`    Ref. ${pago.referencia}`.slice(0, ANCHO));
+  }
+  filas.push(linea());
+  filas.push(centrar('Este documento no es factura.'));
+  filas.push(centrar('¡Gracias por su visita!'));
+  return filas.join('\n');
+}
+
+module.exports = { armarComanda, armarAjuste, armarCuenta, armarComprobante, ANCHO };

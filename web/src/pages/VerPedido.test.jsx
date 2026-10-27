@@ -359,7 +359,7 @@ describe('Caja: cuentas por cobrar (HU06)', () => {
     ]);
     abrir('/caja', CAJERO);
     const terraza = await screen.findByRole('link', { name: /Terraza 2/ });
-    expect(terraza).toHaveAttribute('href', '/pedidos/41');
+    expect(terraza).toHaveAttribute('href', '/caja/cobrar/41');
     expect(within(terraza).getByText('$53.000')).toBeInTheDocument();
     expect(within(terraza).getByText(/Pedido #41 · 3 productos · Ana/)).toBeInTheDocument();
     expect(within(terraza).getByText('Cuenta hace 4 min')).toBeInTheDocument();

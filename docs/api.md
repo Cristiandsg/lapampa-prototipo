@@ -52,7 +52,8 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | PATCH | `/pedidos/:id/cerrar` | Mesero, propietario, cajero | Cierra el pedido y genera la cuenta: pedido y mesa pasan a `por_cobrar` y la cuenta queda en la cola de la impresora de caja. Responde el pedido con `cuenta` (texto de la tirilla). 409 si no está abierto |
 | PATCH | `/pedidos/:id/reabrir` | Mesero, propietario, cajero | `{ motivo }` obligatorio. Devuelve un pedido `por_cobrar` a `abierto` (el cliente pidió algo más). 409 si no está por cobrar o ya tiene pagos |
 | GET | `/caja/por-cobrar` | Propietario, cajero | Bandeja del cajero: `[{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]`, la más antigua primero. El mesero recibe 403 |
-| * | `/caja/...` | Propietario, cajero | Pagos y cierre de caja: HU07 |
+| POST | `/caja/pedidos/:id/pagos` | Propietario, cajero | `{ propina: { respuesta: 'aceptada' \| 'modificada' \| 'rechazada', valor? }, pagos: [{ medio, valor, referencia? }] }` (1 a 3 pagos, un medio por pago, valores enteros en pesos). Cobra el pedido: responde 201 con el pedido `pagado`, sus `pagos`, `propina` y `comprobante`. 400 si los pagos no suman consumo + propina; 409 si no está por cobrar |
+| GET | `/caja/cierre?fecha=AAAA-MM-DD` | Propietario, cajero | Cierre de caja del día (sin fecha: hoy en Colombia): `{ fecha, pedidosPagados, consumo, propinas: { total, porMesero }, porMedio, totalRecaudado, porCobrar }` |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
 ## Reglas de la carta (HU02)
@@ -92,6 +93,19 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - La propina sugerida es el 10 % del subtotal y va **aparte**: la cuenta dice que es voluntaria (Ley 1935 de 2018) y nunca se suma al total. El cliente la decide al pagar (HU08).
 - Después de generar la cuenta el pedido no admite cambios. Si el cliente pide algo más, se **reabre** con motivo (queda en el historial), siempre que no tenga pagos.
 - Si dos celulares generan la cuenta a la vez, sale una sola (el segundo recibe 409).
+
+## Reglas del cobro y la propina (HU07, HU08)
+
+- Solo se cobra un pedido `por_cobrar`, bloqueado con `SELECT ... FOR UPDATE`: dos cajeros no lo cobran dos veces.
+- La propina **nunca se suma sola**: el cajero marca la respuesta del cliente. `aceptada` = 10 % del consumo; `modificada` = el valor que diga el cliente (mayor que 0 y no más que el consumo); `rechazada` = 0. Queda en la tabla `propina` con el mesero que tomó el pedido (a quién se le liquida) y el cajero que la confirmó.
+- Los pagos (efectivo, tarjeta, transferencia, combinados) tienen que sumar **exactamente** consumo + propina; si no cuadran, 400 y no se guarda nada. Las vueltas del efectivo se calculan en pantalla y no se registran como pago.
+- Todo va en una transacción: propina, pagos, pedido `pagado`, mesa `libre`, historial (`pagar`) y comprobante en la cola de la impresora de caja.
+- Quién cobra sale de la sesión (`req.usuario`), nunca del cuerpo de la petición.
+- El cierre usa el día de Colombia (la conexión trabaja en `-05:00`) y filtra por rango de fechas para usar los índices. Lo recaudado = consumo + propinas; las propinas son de los meseros, no venta del gastrobar.
+
+## Concurrencia en las transacciones de pedidos
+
+Las transacciones de `pedido.model.js` corren en `READ COMMITTED`: después de esperar el bloqueo de la mesa, cada lectura ve lo último confirmado. En `REPEATABLE READ` (lo normal en MySQL) una transacción que esperó seguía viendo el pedido como estaba antes de esperar (por ejemplo, contaba 0 productos y anulaba un pedido al que otro celular le acababa de agregar algo).
 
 ## Reglas de las cuentas
 

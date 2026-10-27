@@ -43,6 +43,8 @@ function textoCambio(h) {
       return 'Generó la cuenta';
     case 'reabrir':
       return 'Reabrió el pedido';
+    case 'pagar':
+      return `Cobró: ${h.valor_nuevo}`;
     default:
       return h.accion;
   }
@@ -180,6 +182,7 @@ export default function VerPedido() {
   const puedeEditar = abierto && ['mesero', 'propietario'].includes(usuario.rol);
   const puedeCerrar = abierto && pedido.items.length > 0; // los tres roles
   const porCobrar = pedido.estado === 'por_cobrar';
+  const puedeCobrar = porCobrar && ['cajero', 'propietario'].includes(usuario.rol);
   const estado = ESTADO[pedido.estado];
 
   return (
@@ -257,8 +260,23 @@ export default function VerPedido() {
         </Link>
       )}
 
-      {porCobrar && (
+      {puedeCobrar && (
+        <Link to={`/caja/cobrar/${pedido.id}`} className="boton ancho">
+          Cobrar
+        </Link>
+      )}
+
+      {pedido.comprobante && (
         <details className="bloque" open>
+          <summary>Comprobante de pago</summary>
+          <pre className="tirilla" aria-label="Comprobante de pago">
+            {pedido.comprobante}
+          </pre>
+        </details>
+      )}
+
+      {porCobrar && (
+        <details className="bloque" open={!puedeCobrar}>
           <summary>Cuenta para el cliente</summary>
           <pre className="tirilla" aria-label="Cuenta">
             {pedido.cuenta}
