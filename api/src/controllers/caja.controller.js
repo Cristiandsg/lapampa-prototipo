@@ -63,14 +63,34 @@ const registrarPago = async (req, res) => {
     }
 };
 
-// Consultar cierre de caja
+// Consultar cierre de caja agrupado por medio de pago (PRU-79)
 const obtenerCierreCaja = async (req, res) => {
     try {
+        // Si no mandan fecha en la URL (?fecha=YYYY-MM-DD), tomamos la fecha actual del servidor
         const { fecha } = req.query;
-        // Lógica básica de cierre de caja por fecha
-        return res.status(200).json({ success: true, mensaje: 'Cierre de caja consultado correctamente', fecha: fecha || 'hoy' });
+        const fechaConsulta = fecha ? fecha : new Date().toISOString().slice(0, 10);
+
+        // Consulta SQL optimizada para agrupar los pagos por medio y sumar sus valores en menos de 5 segundos
+        const [totales] = await pool.query(
+            `SELECT medio, SUM(valor) AS total_recaudado, COUNT(*) AS cantidad_transacciones 
+             FROM pago 
+             WHERE DATE(creado_en) = ? 
+             GROUP BY medio`,
+            [fechaConsulta]
+        );
+
+        // Calcular el gran total general del día
+        const granTotal = totales.reduce((acc, curr) => acc + Number(curr.total_recaudado), 0);
+
+        return res.status(200).json({
+            success: true,
+            fecha: fechaConsulta,
+            totalesPorMedio: totales,
+            granTotalRecaudado: granTotal
+        });
+
     } catch (error) {
-        console.error('Error en cierre de caja:', error);
+        console.error('Error al consultar el cierre de caja:', error);
         return res.status(500).json({ error: 'Error al consultar el cierre de caja.' });
     }
 };
