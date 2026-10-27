@@ -97,4 +97,50 @@ function armarAjuste({ titulo, pedido, usuario, fecha, motivo, lineas }) {
   return filas.join('\n');
 }
 
-module.exports = { armarComanda, armarAjuste, ANCHO };
+const SANGRIA = '    ';
+const pesos = (valor) => `$${Math.round(valor).toLocaleString('es-CO')}`;
+
+// "2 x Chumblún ......... $46.000" en 32 columnas; si el nombre es largo, el valor va en la
+// última línea del nombre.
+function filaValor(texto, valor) {
+  const precio = pesos(valor);
+  const cabe = ANCHO - precio.length - 1;
+  const partes =
+    texto.length <= cabe
+      ? [texto]
+      : partir(texto, cabe - SANGRIA.length).map((p, i) => (i ? SANGRIA + p : p));
+  const ultima = partes.pop();
+  return [...partes, ultima + ' '.repeat(ANCHO - ultima.length - precio.length) + precio];
+}
+
+// HU06 — La cuenta que se le entrega al cliente (impresora de caja, HU16).
+// Dice "Cuenta", nunca "factura": la facturación electrónica está fuera del alcance.
+// La propina va aparte y es voluntaria (Ley 1935 de 2018): nunca se suma al total.
+// pedido: { id, mesa, mesero, cerrado_en, subtotal, propina_sugerida, items }
+function armarCuenta(pedido, fecha = pedido.cerrado_en || new Date()) {
+  const filas = [
+    centrar('LA PAMPA GASTROBAR'),
+    linea('='),
+    centrar('CUENTA'),
+    `MESA: ${pedido.mesa}`.slice(0, ANCHO),
+    `Pedido #${pedido.id}`,
+    `Fecha: ${hora(fecha)}`,
+    `Atendió: ${pedido.mesero}`.slice(0, ANCHO),
+    linea(),
+  ];
+  for (const item of pedido.items) {
+    filas.push(...filaValor(`${item.cantidad} x ${item.nombre}`, item.total));
+    if (item.cantidad > 1) filas.push(`    ${pesos(item.precio_unitario)} c/u`);
+  }
+  filas.push(linea());
+  filas.push(...filaValor('TOTAL', pedido.subtotal));
+  filas.push(linea('='));
+  filas.push(...filaValor('Propina sugerida (10 %)', pedido.propina_sugerida));
+  filas.push(...partir('La propina es voluntaria: usted decide si la da y cuánto.', ANCHO));
+  filas.push(linea());
+  filas.push(centrar('Este documento no es factura.'));
+  filas.push(centrar('¡Gracias por su visita!'));
+  return filas.join('\n');
+}
+
+module.exports = { armarComanda, armarAjuste, armarCuenta, ANCHO };

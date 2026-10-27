@@ -6,6 +6,7 @@ import Panel from './pages/Panel';
 import Usuarios from './pages/Usuarios';
 import Carta from './pages/Carta';
 import Mesas from './pages/Mesas';
+import Caja from './pages/Caja';
 import TomarPedido from './pages/TomarPedido';
 import VerPedido from './pages/VerPedido';
 import Inicio from './pages/Inicio';
@@ -49,6 +50,14 @@ export default function App() {
           element={
             <RequiereSesion roles={['mesero', 'propietario']}>
               <Mesas />
+            </RequiereSesion>
+          }
+        />
+        <Route
+          path="/caja"
+          element={
+            <RequiereSesion roles={['cajero', 'propietario']}>
+              <Caja />
             </RequiereSesion>
           }
         />

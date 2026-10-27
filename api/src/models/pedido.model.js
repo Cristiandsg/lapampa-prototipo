@@ -1,7 +1,8 @@
 const pool = require('../config/db');
-const { armarComanda, armarAjuste } = require('../utils/comanda');
+const { armarComanda, armarAjuste, armarCuenta } = require('../utils/comanda');
 
 const MAXIMO_POR_LINEA = 99;
+const PROPINA_SUGERIDA = 0.1;
 
 function error(status, mensaje) {
   const e = new Error(mensaje);
@@ -67,11 +68,13 @@ async function registrarHistorial(conexion, pedidoId, accion, usuarioId, datos =
   );
 }
 
+// Cola de impresión (HU16): la comanda y sus ajustes van a cocina; la cuenta, a caja.
 async function encolarImpresion(conexion, tipo, pedidoId, contenido, usuarioId) {
+  const impresora = tipo === 'cuenta' || tipo === 'comprobante' ? 'caja' : 'cocina';
   await conexion.query(
     `INSERT INTO trabajo_impresion (tipo, impresora, pedido_id, contenido, solicitado_por)
-     VALUES (?, 'cocina', ?, ?, ?)`,
-    [tipo, pedidoId, contenido, usuarioId],
+     VALUES (?, ?, ?, ?, ?)`,
+    [tipo, impresora, pedidoId, contenido, usuarioId],
   );
 }
 
@@ -137,7 +140,6 @@ async function crearEnMesa({ mesaId, meseroId, items, observaciones }) {
     });
 
     const pedido = await leer(conexion, pedidoId);
-    pedido.comanda = armarComanda(pedido);
     await encolarImpresion(conexion, 'comanda', pedidoId, pedido.comanda, meseroId);
     return pedido;
   });
@@ -145,7 +147,8 @@ async function crearEnMesa({ mesaId, meseroId, items, observaciones }) {
 
 // ---------- HU05: modificar un pedido abierto ----------
 
-const NO_ADMITE = {
+const ESTADO_TEXTO = {
+  abierto: 'sigue abierto',
   por_cobrar: 'ya tiene la cuenta generada',
   pagado: 'ya fue pagado',
   cancelado: 'fue anulado',
@@ -154,7 +157,8 @@ const NO_ADMITE = {
 // Bloquea la mesa y el pedido, en ese orden (el mismo que usan HU03 y HU04, para que dos
 // operaciones no se esperen en cruz). Si dos celulares cambian el mismo pedido a la vez,
 // el segundo espera al primero y trabaja sobre el pedido ya actualizado.
-async function bloquearAbierto(conexion, pedidoId) {
+// Si el pedido no está en el estado esperado, responde 409 con `accion` ("no admite cambios").
+async function bloquearPedido(conexion, pedidoId, estadoEsperado, accion) {
   const [[ref]] = await conexion.query('SELECT mesa_id FROM pedido WHERE id = ?', [pedidoId]);
   if (!ref) throw error(404, 'El pedido no existe.');
   let mesa = null;
@@ -167,11 +171,14 @@ async function bloquearAbierto(conexion, pedidoId) {
     'SELECT id, estado, mesa_id FROM pedido WHERE id = ? FOR UPDATE',
     [pedidoId],
   );
-  if (pedido.estado !== 'abierto') {
-    throw error(409, `El pedido #${pedidoId} ${NO_ADMITE[pedido.estado]}: no admite cambios.`);
+  if (pedido.estado !== estadoEsperado) {
+    throw error(409, `El pedido #${pedidoId} ${ESTADO_TEXTO[pedido.estado]}: ${accion}.`);
   }
   return { ...pedido, mesa: mesa?.nombre ?? 'Domicilio' };
 }
+
+const bloquearAbierto = (conexion, pedidoId) =>
+  bloquearPedido(conexion, pedidoId, 'abierto', 'no admite cambios');
 
 async function bloquearLinea(conexion, pedidoId, itemId) {
   const [[linea]] = await conexion.query(
@@ -200,7 +207,6 @@ async function cerrarAjuste(conexion, base, usuario, ajuste) {
   const texto = armarAjuste({ ...ajuste, pedido: base, usuario: usuario.nombre, fecha: ahora });
   await encolarImpresion(conexion, 'ajuste_comanda', base.id, texto, usuario.id);
   const pedido = await leer(conexion, base.id);
-  pedido.comanda = armarComanda(pedido);
   pedido.ajuste = texto;
   return pedido;
 }
@@ -272,7 +278,6 @@ async function cambiarItem({ pedidoId, itemId, cantidad, nota, motivo, usuario }
     const cambiaNota = !mismaNota(nuevaNota, actual.nota);
     if (!cambiaCantidad && !cambiaNota) {
       const pedido = await leer(conexion, pedidoId);
-      pedido.comanda = armarComanda(pedido);
       pedido.ajuste = null;
       return pedido;
     }
@@ -394,9 +399,13 @@ async function leer(conexion, id) {
       ORDER BY h.id`,
     [id],
   );
-  return {
+  const subtotal = Number(p.subtotal);
+  const pedido = {
     ...p,
-    subtotal: Number(p.subtotal),
+    subtotal,
+    // Propina voluntaria sugerida del 10 % (Ley 1935 de 2018). Solo se informa: la decide
+    // el cliente al pagar (HU08) y nunca se suma al total.
+    propina_sugerida: Math.round(subtotal * PROPINA_SUGERIDA),
     items: items.map((i) => ({
       ...i,
       precio_unitario: Number(i.precio_unitario),
@@ -404,12 +413,104 @@ async function leer(conexion, id) {
     })),
     historial,
   };
-}
-
-async function obtener(id) {
-  const pedido = await leer(pool, id);
-  if (pedido) pedido.comanda = armarComanda(pedido);
+  // Textos de las tirillas: la comanda de cocina y la cuenta (en un pedido abierto, la cuenta
+  // es la vista previa de lo que se le va a entregar al cliente).
+  pedido.comanda = armarComanda(pedido);
+  pedido.cuenta = pedido.items.length ? armarCuenta(pedido) : null;
   return pedido;
 }
 
-module.exports = { crearEnMesa, agregarItems, cambiarItem, quitarItem, obtener };
+function obtener(id) {
+  return leer(pool, id);
+}
+
+// ---------- HU06: cerrar el pedido y generar la cuenta ----------
+
+// PATCH /pedidos/:id/cerrar — El pedido pasa a 'por cobrar' (ya no admite cambios), la mesa
+// también, y la cuenta queda en la cola de la impresora de caja. Aparece en la bandeja del
+// cajero (GET /caja/por-cobrar). El subtotal se recalcula del detalle para que la cuenta
+// cuadre siempre con lo que hay en el pedido, incluidos los cambios de HU05.
+async function cerrar({ pedidoId, usuario }) {
+  return enTransaccion(async (conexion) => {
+    const base = await bloquearPedido(
+      conexion,
+      pedidoId,
+      'abierto',
+      'no se puede generar la cuenta otra vez',
+    );
+    await recalcularSubtotal(conexion, pedidoId);
+    await conexion.query(
+      "UPDATE pedido SET estado = 'por_cobrar', cerrado_en = NOW() WHERE id = ?",
+      [pedidoId],
+    );
+    if (base.mesa_id) {
+      await conexion.query("UPDATE mesa SET estado = 'por_cobrar' WHERE id = ?", [base.mesa_id]);
+    }
+    const pedido = await leer(conexion, pedidoId);
+    await registrarHistorial(conexion, pedidoId, 'cerrar', usuario.id, {
+      anterior: 'abierto',
+      nuevo: `por cobrar · $${pedido.subtotal}`,
+    });
+    await encolarImpresion(conexion, 'cuenta', pedidoId, pedido.cuenta, usuario.id);
+    return leer(conexion, pedidoId);
+  });
+}
+
+// PATCH /pedidos/:id/reabrir — Si el cliente pide algo más después de pedir la cuenta, el
+// pedido vuelve a 'abierto' (con motivo). Solo mientras no tenga pagos registrados (HU07).
+async function reabrir({ pedidoId, motivo, usuario }) {
+  return enTransaccion(async (conexion) => {
+    const base = await bloquearPedido(conexion, pedidoId, 'por_cobrar', 'no se puede reabrir');
+    const [[{ pagos }]] = await conexion.query(
+      'SELECT COUNT(*) AS pagos FROM pago WHERE pedido_id = ?',
+      [pedidoId],
+    );
+    if (pagos > 0) {
+      throw error(409, `El pedido #${pedidoId} ya tiene pagos registrados: no se puede reabrir.`);
+    }
+    await conexion.query("UPDATE pedido SET estado = 'abierto', cerrado_en = NULL WHERE id = ?", [
+      pedidoId,
+    ]);
+    if (base.mesa_id) {
+      await conexion.query("UPDATE mesa SET estado = 'ocupada' WHERE id = ?", [base.mesa_id]);
+    }
+    await registrarHistorial(conexion, pedidoId, 'reabrir', usuario.id, {
+      anterior: 'por cobrar',
+      nuevo: 'abierto',
+      motivo,
+    });
+    return leer(conexion, pedidoId);
+  });
+}
+
+// GET /caja/por-cobrar — Bandeja del cajero: las cuentas generadas que faltan por cobrar,
+// la más antigua primero.
+async function listarPorCobrar() {
+  const [filas] = await pool.query(
+    `SELECT pe.id, pe.canal, m.nombre AS mesa, u.nombre AS mesero, pe.subtotal, pe.cerrado_en,
+            TIMESTAMPDIFF(MINUTE, pe.cerrado_en, NOW()) AS minutos,
+            (SELECT COALESCE(SUM(d.cantidad), 0) FROM detalle_pedido d
+              WHERE d.pedido_id = pe.id) AS productos
+       FROM pedido pe
+       LEFT JOIN mesa m ON m.id = pe.mesa_id
+       LEFT JOIN usuario u ON u.id = pe.mesero_id
+      WHERE pe.estado = 'por_cobrar'
+      ORDER BY pe.cerrado_en, pe.id`,
+  );
+  return filas.map((f) => ({
+    ...f,
+    subtotal: Number(f.subtotal),
+    productos: Number(f.productos),
+  }));
+}
+
+module.exports = {
+  crearEnMesa,
+  agregarItems,
+  cambiarItem,
+  quitarItem,
+  obtener,
+  cerrar,
+  reabrir,
+  listarPorCobrar,
+};

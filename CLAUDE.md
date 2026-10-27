@@ -81,10 +81,10 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 |---|---|---|
 | Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados y línea base en `docs/linea-base.md`. Cerrado y pasado a `main` |
 | Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Publicadas y aprobadas por el propietario en la Review. Cerrado y pasado a `main` (v0.2). Acta de review y retro: `docs/sprints/sprint-1.md` |
-| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | En curso. HU05 en revisión: rama `feature/HU05-modificar-pedido` |
+| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | En curso. HU05 publicada. HU06 en revisión: rama `feature/HU06-cerrar-cuenta` |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** HU06 (cerrar el pedido y generar la cuenta, Esteban): pasa el pedido de `abierto` a `por_cobrar`, que ya bloquea los cambios de HU05. Usa `bloquearAbierto` y `enTransaccion` de `api/src/models/pedido.model.js`. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
+**Siguiente paso:** HU07 (registrar el pago, Esteban) y HU08 (propina, Diana) sobre la bandeja de caja (`web/src/pages/Caja.jsx`, `GET /api/caja/por-cobrar`): el pago va en `api/src/routes/caja.routes.js` o en `POST /api/pedidos/:id/pagos`, en una transacción que pase el pedido de `por_cobrar` a `pagado` y deje la mesa `libre`. La propina sugerida ya viene en el pedido (`propina_sugerida`). Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v5): trabajo de grado `Proyecto_Gastrobar_v5_limpio.docx` y `Scrum_LaPampa_Gastrobar_v5.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.
