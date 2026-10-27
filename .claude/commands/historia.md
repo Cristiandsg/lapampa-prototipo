@@ -5,6 +5,7 @@ argument-hint: HUxx o HT-xx
 
 Vamos a implementar la historia **$ARGUMENTS** del prototipo de La Pampa Gastrobar.
 
+0. Lee `docs/forma-de-trabajo.md` completo, sobre todo la sección 7 (errores que ya pasaron), y en `docs/api.md` las rutas y reglas que ya existen: reutilízalas en vez de crear otras parecidas.
 1. Lee la historia **$ARGUMENTS** en `docs/backlog.md`: enunciado, criterio de aceptación clave y subtareas. Revisa en `docs/requisitos.md` los requisitos asociados y en `docs/bd/diccionario.md` las tablas que toca.
 2. Verifica que estoy en una rama `feature/$ARGUMENTS-...` creada desde `develop` actualizado. Si no, propón el nombre y créala (`git switch develop && git pull && git switch -c feature/$ARGUMENTS-descripcion`).
 3. Antes de escribir código, muéstrame un plan corto: endpoints, archivos de `api/src` y `web/src` que vas a crear o tocar, cambios de base de datos y casos de prueba. Espera mi visto bueno.
