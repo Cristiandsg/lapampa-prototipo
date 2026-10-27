@@ -148,4 +148,24 @@ export async function obtenerPedido(id) {
   return data;
 }
 
+// ---------- Modificar pedido (HU05) ----------
+// Cada una responde el pedido actualizado y `ajuste`: la tirilla que va a cocina.
+// items: [{ productoId, cantidad, nota }]
+export async function agregarAlPedido(pedidoId, items) {
+  const { data } = await api.post(`/pedidos/${pedidoId}/items`, { items });
+  return data;
+}
+
+// cambios: { cantidad?, nota?, motivo? } — bajar la cantidad exige motivo
+export async function cambiarLineaPedido(pedidoId, itemId, cambios) {
+  const { data } = await api.put(`/pedidos/${pedidoId}/items/${itemId}`, cambios);
+  return data;
+}
+
+// Si era el único producto, el pedido queda anulado y la mesa libre
+export async function quitarDelPedido(pedidoId, itemId, motivo) {
+  const { data } = await api.delete(`/pedidos/${pedidoId}/items/${itemId}`, { data: { motivo } });
+  return data;
+}
+
 export default api;

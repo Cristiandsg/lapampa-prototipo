@@ -60,6 +60,8 @@ a {
   margin: 0 auto;
   padding: 0 16px 32px;
   display: grid;
+  /* minmax(0, 1fr): un texto largo sin saltos (subtítulo, comanda) no ensancha la página */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 
@@ -756,6 +758,7 @@ details.categorias summary {
 }
 .pie-pedido-fila .boton {
   min-height: 52px;
+  white-space: nowrap;
   padding: 0 24px;
   font-size: 1.05rem;
 }
@@ -805,6 +808,72 @@ details summary {
     ui-monospace,
     monospace;
   white-space: pre;
+}
+
+/* ---------- Modificar pedido (HU05) ---------- */
+.linea-pedido {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+.linea-pedido > .carta-linea {
+  grid-column: 1 / -1;
+}
+.linea-pedido > small {
+  grid-column: 1;
+}
+.linea-pedido > .boton.chico {
+  grid-column: 2;
+}
+.fila-cantidad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+}
+.boton-redondo:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.chips-motivo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.total-hoja {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.hoja {
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.historial {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.historial li {
+  display: grid;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--mostaza);
+  font-size: 0.92rem;
+}
+.historial-quien {
+  font-size: 0.8rem;
+  color: var(--cafe-suave);
+}
+.historial-motivo {
+  font-weight: 600;
+  color: var(--achiote);
 }
 
 @media (min-width: 560px) {

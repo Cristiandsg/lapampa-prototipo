@@ -45,7 +45,10 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | DELETE | `/mesas/:id` | Mesero, propietario | Desactiva la mesa (no la borra). 409 si tiene pedido abierto |
 | POST | `/mesas/quitar-libres` | Mesero, propietario | Al cerrar la jornada: desactiva todas las mesas libres y responde `{ cantidad }` |
 | POST | `/pedidos` | Mesero, propietario | `{ mesaId, items: [{ productoId, cantidad (1-99), nota? }], observaciones? }`. Responde el pedido con número (`id`), hora, mesero, detalle y `comanda`. 409 si la mesa ya tiene pedido o un producto está agotado o desactivado; 400 sin productos |
-| GET | `/pedidos/:id` | Con sesión | Pedido con mesa, mesero, detalle (precio guardado en el momento del pedido), total y comanda |
+| GET | `/pedidos/:id` | Con sesión | Pedido con mesa, mesero, detalle (precio guardado en el momento del pedido), total, comanda e `historial` (quién, qué, cuándo y motivo) |
+| POST | `/pedidos/:id/items` | Mesero, propietario | `{ items: [{ productoId, cantidad (1-99), nota? }] }`: agrega productos a un pedido abierto. Responde el pedido actualizado y `ajuste` (la tirilla de "ADICIÓN" para cocina). 409 si el pedido no está abierto o un producto está agotado |
+| PUT | `/pedidos/:id/items/:itemId` | Mesero, propietario | Cualquiera de `{ cantidad, nota }`, más `motivo` (3 a 150 caracteres), obligatorio si baja la cantidad. Responde el pedido y `ajuste` (`null` si no cambió nada) |
+| DELETE | `/pedidos/:id/items/:itemId` | Mesero, propietario | `{ motivo }` obligatorio. Quita la línea; si era la única, el pedido queda `cancelado` y la mesa `libre`. 404 si la línea ya no está en el pedido |
 | * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
@@ -67,6 +70,16 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Si dos meseros abren la misma mesa a la vez, uno espera al otro y el segundo recibe 409.
 - El número del pedido es su `id` (consecutivo). Las líneas con el mismo producto y la misma nota se juntan.
 - La conexión a la base trabaja en hora de Colombia (`SET time_zone = '-05:00'` en `api/src/config/db.js`).
+
+## Reglas para modificar un pedido (HU05)
+
+- Solo se modifica un pedido `abierto`. Con la cuenta generada (`por_cobrar`), pagado o anulado responde 409.
+- Todo lo que está en el pedido ya se envió a cocina: bajar una cantidad o quitar un producto **exige el motivo**. Subir una cantidad o agregar productos no lo pide.
+- Cada cambio deja en la cola de cocina (`trabajo_impresion`, tipo `ajuste_comanda`) una tirilla con **solo lo que cambió**: `ADICIÓN`, `ANULAR`, `CAMBIO` (nota) o `PEDIDO ANULADO`, con quién lo hizo y el motivo.
+- Una adición se suma a la línea que tenga el mismo producto, la misma nota y el mismo precio. Si el precio de la carta cambió, va en otra línea con el precio nuevo.
+- Quitar el único producto anula el pedido y deja la mesa libre (decisión del PO: el cliente se fue sin consumir).
+- Cada cambio queda en `historial_cambio` (`agregar_item`, `cambiar_item`, `quitar_item`, `anular`) con el antes, el después, el motivo y el usuario.
+- Bloqueo: mesa y luego pedido con `SELECT ... FOR UPDATE`, en el mismo orden que HU03 y HU04. Si dos celulares cambian el mismo pedido a la vez, el segundo espera y trabaja sobre el pedido ya actualizado (si la línea ya no existe, recibe 404).
 
 ## Reglas de las cuentas
 
