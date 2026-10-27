@@ -66,4 +66,35 @@ function armarComanda(pedido) {
   return filas.join('\n');
 }
 
-module.exports = { armarComanda, ANCHO };
+// HU05 — Tirilla de ajuste para cocina: solo lo que cambió, no el pedido entero, para que
+// no se prepare dos veces lo mismo.
+// ajuste: { titulo: 'ADICIÓN' | 'ANULAR' | 'CAMBIO' | 'PEDIDO ANULADO', pedido, usuario,
+//           fecha, motivo?, lineas: [{ texto: '+ 2 x Chumblún', notas: ['* sin cebolla'] }] }
+function armarAjuste({ titulo, pedido, usuario, fecha, motivo, lineas }) {
+  const filas = [
+    centrar('LA PAMPA - COCINA'),
+    linea('='),
+    centrar(`*** ${titulo} ***`),
+    `MESA: ${pedido.mesa}`.slice(0, ANCHO),
+    `Pedido #${pedido.id}`,
+    `Hora: ${hora(fecha)}`,
+    `Por: ${usuario}`.slice(0, ANCHO),
+    linea(),
+  ];
+  for (const { texto, notas = [] } of lineas) {
+    const [primera, ...resto] = partir(texto, ANCHO);
+    filas.push(primera);
+    for (const r of resto) filas.push(`    ${r}`.slice(0, ANCHO));
+    for (const nota of notas) {
+      for (const n of partir(nota, ANCHO - 4)) filas.push(`    ${n}`);
+    }
+  }
+  if (motivo) {
+    filas.push(linea());
+    filas.push(...partir(`MOTIVO: ${motivo}`, ANCHO));
+  }
+  filas.push(linea('='));
+  return filas.join('\n');
+}
+
+module.exports = { armarComanda, armarAjuste, ANCHO };

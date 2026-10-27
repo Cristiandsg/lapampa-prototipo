@@ -211,7 +211,7 @@ export default function Mesas() {
             setCreando(true);
           }}
         >
-          <span aria-hidden="true">+ </span>Nueva mesa
+          <span aria-hidden="true">+&nbsp;</span>Nueva mesa
         </button>
       )}
 

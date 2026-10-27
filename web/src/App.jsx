@@ -61,6 +61,14 @@ export default function App() {
           }
         />
         <Route
+          path="/pedidos/:id/agregar"
+          element={
+            <RequiereSesion roles={['mesero', 'propietario']}>
+              <TomarPedido adicion />
+            </RequiereSesion>
+          }
+        />
+        <Route
           path="/pedidos/:id"
           element={
             <RequiereSesion>
