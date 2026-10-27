@@ -68,7 +68,7 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 
 ## Forma de trabajo
 
-- **Backlog completo** con criterios de aceptación y subtareas: `docs/backlog.md`. Requisitos: `docs/requisitos.md`. Flujo de Git: `docs/guia-git.md`.
+- **Backlog completo** con criterios de aceptación y subtareas: `docs/backlog.md`. Requisitos: `docs/requisitos.md`. Flujo de Git: `docs/guia-git.md`. Reglas que se revisan en cada PR y lista de chequeo: `docs/forma-de-trabajo.md`. Actas de review y retro: `docs/sprints/`.
 - **Ramas:** `main` (aceptado en el Review) · `develop` (integración, rama por defecto) · `feature/HUxx-descripcion` desde `develop`. Nunca trabajar directo en `main` ni `develop`.
 - **Commits:** empiezan con el ID: `HU03: valida nombre de mesa repetido`. PR a `develop` con la plantilla de `.github/`.
 - **Para implementar una historia** usa el comando `/historia HUxx` (en `.claude/commands/historia.md`).
@@ -80,11 +80,11 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 | Sprint | Historias | Estado |
 |---|---|---|
 | Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados y línea base en `docs/linea-base.md`. Cerrado y pasado a `main` |
-| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | HU01, HU02 y HU03 publicadas. HU04 (pedido por mesa) en revisión: rama `feature/HU04-pedido-mesa` |
-| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Por hacer |
+| Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Publicadas y aprobadas por el propietario en la Review. Cerrado y pasado a `main` (v0.2). Acta de review y retro: `docs/sprints/sprint-1.md` |
+| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | En curso: HU05 primero |
 | Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** cerrar el Sprint 1 (Review con el propietario: registrar un pedido real desde el celular) y empezar el Sprint 2 por HU05 (modificar pedido) sobre `api/src/models/pedido.model.js` y `web/src/pages/VerPedido.jsx`. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
+**Siguiente paso:** Sprint 2, empezando por HU05 (modificar pedido) sobre `api/src/models/pedido.model.js` y `web/src/pages/VerPedido.jsx`. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v5): trabajo de grado `Proyecto_Gastrobar_v5_limpio.docx` y `Scrum_LaPampa_Gastrobar_v5.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.
