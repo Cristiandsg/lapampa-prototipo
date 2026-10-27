@@ -27,7 +27,7 @@ Celular (navegador)  ──►  /web  React + Vite  (Vista)
 | `api/db` | `schema.sql` (tablas), `seed.sql` (datos iniciales), `datos_prueba.sql` (opcional) |
 | `web/src/pages` | Pantallas |
 | `web/src/services` | Llamadas a la API |
-| `docs` | [Arquitectura](docs/arquitectura.md), [despliegue](docs/despliegue.md), [línea base](docs/linea-base.md), [MER](docs/bd/mer.md) y [diccionario de datos](docs/bd/diccionario.md) |
+| `docs` | [Arquitectura](docs/arquitectura.md), [despliegue](docs/despliegue.md), [línea base](docs/linea-base.md), [API](docs/api.md), [MER](docs/bd/mer.md) y [diccionario de datos](docs/bd/diccionario.md) |
 | `agente-impresion/` (Sprint 3) | Programa que corre en el PC de la caja y envía comandas y cuentas a las 2 impresoras térmicas USB (HU16) |
 
 ## En la nube
@@ -65,7 +65,7 @@ Abrir http://localhost:5173: debe decir **API funcionando** y **Base de datos co
 
 **Probar desde el celular:** con el celular en la misma red Wi-Fi, abrir la dirección "Network" que muestra Vite (por ejemplo, `http://192.168.1.20:5173`).
 
-**Usuarios de prueba** (contraseña `LaPampa2026*`): `propietario`, `cajero`, `mesero`. Se cambian antes de usar el sistema en el local.
+**Usuarios de prueba** (contraseña `LaPampa2026*`): `propietario`, `cajero`, `mesero`. Entra en http://localhost:5173 con cualquiera: cada rol ve un menú distinto. En la nube estas contraseñas se cambian desde **Usuarios** (con el propietario), porque el repositorio es público.
 
 > ⚠️ `db:init` y `db:prueba` **borran** la base `lapampa` y la crean de nuevo.
 
@@ -78,7 +78,7 @@ Tomado de la carta de La Pampa: mostaza `#E8B95E`, crema `#EFE6BD`, café `#4A34
 | Comando (desde la raíz) | Qué hace |
 |---|---|
 | `npm run dev` | API + web en modo desarrollo |
-| `npm test` | Pruebas de la API (Jest + Supertest) y de la web (Vitest) |
+| `npm test` | Pruebas de la API (Jest + Supertest, en una base aparte `lapampa_test`; necesita MySQL prendido) y de la web (Vitest) |
 | `npm run lint` | Revisa el código con ESLint |
 | `npm run format` | Formatea con Prettier |
 | `npm run db:nube --prefix api` | Crea la base en la nube (Aiven) con los datos de `api/.env.nube` |
@@ -110,4 +110,6 @@ Criterio de HT-01: la URL pública responde `GET /api/salud` con HTTPS desde un 
 
 ## Estado
 
-**Sprint 0** — Terminado: repositorio y despliegue en la nube (HT-01), modelo de datos (HT-02), mockups aprobados por el propietario y [línea base](docs/linea-base.md) (HT-03). Siguiente: Sprint 1, empezando por HU01.
+**Sprint 0** — Terminado: repositorio y despliegue en la nube (HT-01), modelo de datos (HT-02), mockups aprobados por el propietario y [línea base](docs/linea-base.md) (HT-03).
+
+**Sprint 1** — HU01 (inicio de sesión y permisos por rol) lista para revisión: ingreso, bloqueo tras 5 intentos, menú por rol, cierre de sesión y gestión de usuarios. Rutas en [docs/api.md](docs/api.md). HU02 (carta digital) publicada. HU03 (mesas de la jornada) publicada. HU04 (pedido por mesa) en revisión.

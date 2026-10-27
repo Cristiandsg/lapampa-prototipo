@@ -35,7 +35,7 @@ export default function Inicio() {
       </section>
 
       <p className="nota">
-        Primer prototipo · Sprint 0 · <Link to="/estilo">Ver guía de estilo</Link>
+        <Link to="/ingresar">Ingresar</Link> · <Link to="/estilo">Guía de estilo</Link>
       </p>
     </main>
   );
