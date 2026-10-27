@@ -1,15 +1,15 @@
-const { Router } = require('express');
-const { verificarToken, permitirRoles } = require('../middlewares/autenticacion');
-const pedidos = require('../controllers/pedidos.controller');
+const express = require('express');
+const router = express.Router();
+const { registrarPagoConPropina, obtenerCierreCaja, obtenerDetallePedidoParaCobro } = require('../controllers/caja.controller');
 
-const router = Router();
+// Listar pedidos por cobrar (heredado de HU06) - Asegúrate de mantener tu lógica anterior de por-cobrar si la tienes aquí o en otro archivo
+// Endpoint para detalle de pedido y propina sugerida (PRU-82)
+router.get('/pedidos/:id/detalle', obtenerDetallePedidoParaCobro);
 
-// La caja es del cajero y del propietario: un mesero recibe 403 (criterio de HU01)
-router.use(verificarToken, permitirRoles('propietario', 'cajero'));
+// Endpoint para registrar pagos y propina (PRU-83)
+router.post('/pedidos/:id/pagos', registrarPagoConPropina);
 
-// HU06 — Bandeja del cajero: cuentas generadas que faltan por cobrar
-router.get('/por-cobrar', pedidos.porCobrar);
-
-// HU07 (pagos y cierre de caja) se agrega aquí.
+// Endpoint para el cierre de caja diario (PRU-79 / PRU-85)
+router.get('/cierre', obtenerCierreCaja);
 
 module.exports = router;
