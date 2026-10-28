@@ -187,4 +187,19 @@ export async function listarPorCobrar() {
   return data;
 }
 
+// ---------- Cobro y propina (HU07, HU08) ----------
+// datos: { propina: { respuesta: 'aceptada' | 'modificada' | 'rechazada', valor? },
+//          pagos: [{ medio: 'efectivo' | 'tarjeta' | 'transferencia', valor, referencia? }] }
+// Responde el pedido pagado, con `pagos`, `propina` y `comprobante`.
+export async function cobrarPedido(pedidoId, datos) {
+  const { data } = await api.post(`/caja/pedidos/${pedidoId}/pagos`, datos);
+  return data;
+}
+
+// Cierre de caja de un día ('AAAA-MM-DD'; sin fecha, hoy en Colombia)
+export async function obtenerCierre(fecha) {
+  const { data } = await api.get('/caja/cierre', { params: fecha ? { fecha } : {} });
+  return data;
+}
+
 export default api;

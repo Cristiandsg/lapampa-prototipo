@@ -95,11 +95,6 @@ function reabrir(req, res) {
   );
 }
 
-// GET /api/caja/por-cobrar — HU06: bandeja del cajero
-async function porCobrar(req, res) {
-  res.json(await pedidoModel.listarPorCobrar());
-}
-
 module.exports = {
   crear,
   obtener,
@@ -108,5 +103,4 @@ module.exports = {
   quitarItem,
   cerrar,
   reabrir,
-  porCobrar,
 };

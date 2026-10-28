@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { armarComanda, armarAjuste, armarCuenta } = require('../utils/comanda');
+const { armarComanda, armarAjuste, armarCuenta, armarComprobante } = require('../utils/comanda');
 
 const MAXIMO_POR_LINEA = 99;
 const PROPINA_SUGERIDA = 0.1;
@@ -79,9 +79,14 @@ async function encolarImpresion(conexion, tipo, pedidoId, contenido, usuarioId) 
 }
 
 // Corre `trabajo` dentro de una transacción y libera la conexión pase lo que pase.
+// READ COMMITTED: cada lectura ve lo último confirmado. Con REPEATABLE READ (lo normal en
+// MySQL), una transacción que esperó el bloqueo de la mesa seguía viendo el pedido como
+// estaba ANTES de esperar: por ejemplo, contaba 0 productos y anulaba un pedido al que otro
+// celular le acababa de agregar algo. Los SELECT ... FOR UPDATE siguen ordenando el acceso.
 async function enTransaccion(trabajo) {
   const conexion = await pool.getConnection();
   try {
+    await conexion.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     await conexion.beginTransaction();
     const resultado = await trabajo(conexion);
     await conexion.commit();
@@ -376,7 +381,8 @@ async function quitarItem({ pedidoId, itemId, motivo, usuario }) {
 async function leer(conexion, id) {
   const [[p]] = await conexion.query(
     `SELECT pe.id, pe.canal, pe.estado, pe.subtotal, pe.observaciones, pe.creado_en,
-            pe.cerrado_en, pe.mesa_id, m.nombre AS mesa, u.nombre AS mesero
+            pe.cerrado_en, pe.pagado_en, pe.mesa_id, pe.mesero_id, m.nombre AS mesa,
+            u.nombre AS mesero
        FROM pedido pe
        LEFT JOIN mesa m ON m.id = pe.mesa_id
        LEFT JOIN usuario u ON u.id = pe.mesero_id
@@ -399,6 +405,18 @@ async function leer(conexion, id) {
       ORDER BY h.id`,
     [id],
   );
+  // Cobro (HU07) y propina (HU08), si ya se pagó
+  const [pagos] = await conexion.query(
+    `SELECT pg.id, pg.medio, pg.valor, pg.referencia, pg.creado_en, u.nombre AS cajero
+       FROM pago pg JOIN usuario u ON u.id = pg.cajero_id
+      WHERE pg.pedido_id = ?
+      ORDER BY pg.id`,
+    [id],
+  );
+  const [[propina]] = await conexion.query(
+    `SELECT valor_sugerido, valor, respuesta FROM propina WHERE pedido_id = ?`,
+    [id],
+  );
   const subtotal = Number(p.subtotal);
   const pedido = {
     ...p,
@@ -412,11 +430,14 @@ async function leer(conexion, id) {
       total: Number(i.precio_unitario) * i.cantidad,
     })),
     historial,
+    pagos,
+    propina: propina ?? null,
   };
   // Textos de las tirillas: la comanda de cocina y la cuenta (en un pedido abierto, la cuenta
   // es la vista previa de lo que se le va a entregar al cliente).
   pedido.comanda = armarComanda(pedido);
   pedido.cuenta = pedido.items.length ? armarCuenta(pedido) : null;
+  pedido.comprobante = pedido.estado === 'pagado' ? armarComprobante(pedido) : null;
   return pedido;
 }
 
@@ -483,6 +504,85 @@ async function reabrir({ pedidoId, motivo, usuario }) {
   });
 }
 
+// ---------- HU07 y HU08: cobrar el pedido con su propina ----------
+
+const MEDIO_TEXTO = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+
+// POST /caja/pedidos/:id/pagos — Registra la propina (HU08) y los pagos (HU07) en una sola
+// transacción: si algo falla o los valores no cuadran, no queda nada a medias.
+//  - El pedido tiene que estar 'por cobrar' (bloqueado con FOR UPDATE: no se cobra dos veces).
+//  - La propina nunca se suma sola: el cajero confirma qué dijo el cliente (aceptada,
+//    modificada o rechazada). Se le liquida al mesero que tomó el pedido.
+//  - La suma de los pagos tiene que ser igual al consumo más la propina.
+//  - El pedido queda 'pagado', la mesa libre y el comprobante en la cola de la impresora de caja.
+// propina: { respuesta: 'aceptada' | 'modificada' | 'rechazada', valor? }
+// pagos: [{ medio, valor, referencia? }]
+async function cobrar({ pedidoId, propina, pagos, cajero }) {
+  return enTransaccion(async (conexion) => {
+    const base = await bloquearPedido(conexion, pedidoId, 'por_cobrar', 'no se puede cobrar');
+    const [[pedido]] = await conexion.query('SELECT subtotal, mesero_id FROM pedido WHERE id = ?', [
+      pedidoId,
+    ]);
+    const consumo = Number(pedido.subtotal);
+    const sugerida = Math.round(consumo * PROPINA_SUGERIDA);
+
+    let valorPropina = 0;
+    if (propina.respuesta === 'aceptada') valorPropina = sugerida;
+    if (propina.respuesta === 'modificada') {
+      valorPropina = propina.valor;
+      if (!(valorPropina > 0)) {
+        throw error(400, 'Escribe el valor de la propina que dio el cliente.');
+      }
+      if (valorPropina > consumo) {
+        throw error(400, 'La propina no puede ser mayor que el consumo. Revisa el valor.');
+      }
+    }
+
+    const total = consumo + valorPropina;
+    const pagado = pagos.reduce((s, p) => s + p.valor, 0);
+    if (pagado !== total) {
+      const dif = Math.abs(total - pagado).toLocaleString('es-CO');
+      throw error(
+        400,
+        pagado < total
+          ? `Faltan $${dif}: los pagos tienen que sumar $${total.toLocaleString('es-CO')}.`
+          : `Sobran $${dif}: los pagos tienen que sumar $${total.toLocaleString('es-CO')}. Las vueltas del efectivo no se registran como pago.`,
+      );
+    }
+
+    await conexion.query(
+      `INSERT INTO propina (pedido_id, valor_sugerido, valor, respuesta, mesero_id, cajero_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [pedidoId, sugerida, valorPropina, propina.respuesta, pedido.mesero_id, cajero.id],
+    );
+    for (const p of pagos) {
+      await conexion.query(
+        `INSERT INTO pago (pedido_id, medio, valor, referencia, cajero_id) VALUES (?, ?, ?, ?, ?)`,
+        [pedidoId, p.medio, p.valor, p.referencia || null, cajero.id],
+      );
+    }
+    await conexion.query("UPDATE pedido SET estado = 'pagado', pagado_en = NOW() WHERE id = ?", [
+      pedidoId,
+    ]);
+    if (base.mesa_id) {
+      await conexion.query("UPDATE mesa SET estado = 'libre' WHERE id = ?", [base.mesa_id]);
+    }
+    await registrarHistorial(conexion, pedidoId, 'pagar', cajero.id, {
+      anterior: 'por cobrar',
+      nuevo: [
+        ...pagos.map((p) => `${MEDIO_TEXTO[p.medio]} $${p.valor}`),
+        `propina $${valorPropina} (${propina.respuesta})`,
+      ]
+        .join(' + ')
+        .slice(0, 255),
+    });
+
+    const cobrado = await leer(conexion, pedidoId);
+    await encolarImpresion(conexion, 'comprobante', pedidoId, cobrado.comprobante, cajero.id);
+    return cobrado;
+  });
+}
+
 // GET /caja/por-cobrar — Bandeja del cajero: las cuentas generadas que faltan por cobrar,
 // la más antigua primero.
 async function listarPorCobrar() {
@@ -513,4 +613,5 @@ module.exports = {
   cerrar,
   reabrir,
   listarPorCobrar,
+  cobrar,
 };

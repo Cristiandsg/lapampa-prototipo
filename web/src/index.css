@@ -916,6 +916,122 @@ details summary {
   color: var(--cafe-suave);
 }
 
+/* ---------- Cobro y cierre de caja (HU07, HU08) ---------- */
+.cobro {
+  display: grid;
+  gap: 20px;
+}
+.pago-campos {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.campo-pesos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid var(--linea);
+  border-radius: 12px;
+  background: var(--papel);
+  padding-left: 14px;
+  font-weight: 700;
+}
+.campo-pesos:focus-within {
+  border-color: var(--cafe);
+}
+.campo .campo-pesos input {
+  border: none;
+  background: transparent;
+  padding-left: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.campo .campo-pesos input:focus {
+  outline: none;
+}
+.opciones-propina {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.opcion-propina {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 2px solid var(--linea);
+  border-radius: 14px;
+  background: var(--papel);
+  color: var(--cafe);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.opcion-propina span {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.opcion-propina[aria-pressed='true'] {
+  border-color: var(--cafe);
+  background: var(--cafe);
+  color: var(--papel);
+}
+.resumen-cobro {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.resumen-cobro > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.resumen-cobro dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.resumen-cobro small {
+  color: var(--cafe-suave);
+}
+.resumen-cobro .resumen-total {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 2px solid var(--cafe);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.vueltas {
+  margin: 6px 0 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--crema);
+}
+.vueltas-valor {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--hoja);
+}
+.cifra-grande {
+  text-align: center;
+  font: 900 2.2rem var(--titulo);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0;
+}
+.lista-propinas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.lista-propinas small {
+  color: var(--cafe-suave);
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;
