@@ -119,7 +119,7 @@ Varias salieron de la revisión de HU02.
   - La propina es sugerida del 10 % y voluntaria.
   - Lo que sale por la caja dice "Cuenta" o "Comprobante", nunca "factura".
 
-## 5. Antes de abrir el PR, Claude revisa con Karolina
+## 5. Antes de abrir el PR, Claude revisa con la persona
 
 - [ ] La rama es `feature/HUxx-…` y sale de `develop` actualizado.
 - [ ] Cumple el **criterio de aceptación** de la historia, en `docs/backlog.md` y en Jira.
@@ -130,21 +130,39 @@ Varias salieron de la revisión de HU02.
 - [ ] Lo de dinero va en transacción.
 - [ ] Se probó en el navegador en tamaño de celular.
 - [ ] La documentación está al día si cambió algo.
+- [ ] Ninguno de los errores de la sección 7 aparece en el cambio.
+- [ ] Después del `push`, el PR a `develop` quedó abierto.
 
 ## 6. Lo que le toca a Karolina
 
-- **Sprint 1 (cerrando):** subtareas de **QA** de HU01 a HU04 en Jira.
-  - Probar desde el celular en la URL oficial: login por rol, carta y agotados, mesas, y pedido por mesa.
-  - Incluye la prueba de dos celulares enviando pedido a la misma mesa: uno entra y el otro recibe "ya tiene un pedido abierto".
-- **Sprint 2: HU08, calcular y registrar la propina** (3 SP).
-  - Propina sugerida del 10 % sobre el subtotal (Ley 1935 de 2018).
-  - El cliente la acepta, la cambia o la rechaza.
-  - Se guarda por pedido y con el mesero que atendió.
-  - **Siempre va separada del valor consumido y nunca se suma sin que el cajero confirme.**
-  - Depende del cobro (HU06 y HU07, de Esteban), así que conviene arrancar después de que esas estén en `develop`. Mientras tanto se puede preparar la parte de base de datos y las pruebas.
-- **Más adelante:** HU10 (domicilios por llamada o WhatsApp), HU16 (impresión, con Esteban), HU13 (reportes, con Esteban) y HU14 (más vendidos).
+- **Sprint 2 (cerrando): QA** de HU05 a HU08 desde el celular, en la URL oficial.
+  - Agregar y quitar productos de una mesa (quitar pide motivo).
+  - Generar la cuenta: la mesa pasa a "por cobrar" y aparece en Caja.
+  - Cobrar con propina aceptada, con otro valor y sin propina; pago mixto; vueltas en efectivo.
+  - Que la mesa quede libre después de pagar y que el cierre de caja del día cuadre.
+- **Sprint 3:** HU10 (domicilios por llamada o WhatsApp) y HU16 (impresión, con Esteban).
+- **Sprint 4:** HU13 (reportes, con Esteban) y HU14 (más vendidos).
+- Antes de empezar una historia, Claude lee en `docs/api.md` las rutas y reglas que ya existen, para **reutilizarlas** en vez de crear otras parecidas (por ejemplo, la caja ya tiene `GET /api/caja/por-cobrar`, el cobro y el cierre).
 
-## 7. Cosas de la nube que ya nos pasaron
+## 7. Errores que ya pasaron (no repetirlos)
+
+Salieron en las revisiones de HU02, HU07 y HU08. Claude revisa cada uno antes de proponer el PR:
+
+| Error | Qué pasó | Cómo se hace |
+|---|---|---|
+| Datos de quién hace la operación en el body | `cajeroId: 2` escrito en la pantalla | Siempre `req.usuario.id` en el controlador |
+| No revisar el estado antes de cambiarlo | Se podía cobrar dos veces o cobrar un pedido abierto | Bloquear con `SELECT ... FOR UPDATE` y revisar el estado; si no es el esperado, 409 |
+| Olvidar el efecto en otras tablas | Después de pagar, la mesa quedaba "por cobrar" para siempre | Leer el criterio y las subtareas completas: "marca el pedido pagado **y libera la mesa**" |
+| Fechas en UTC | `new Date().toISOString()` da el día de Londres: el cierre de la noche salía vacío | Las fechas de "hoy" las calcula MySQL (`CURDATE()`), que trabaja en hora de Colombia |
+| Ruta sin protección | La rama de HU08 quitaba `verificarToken` y `permitirRoles` de la caja | Toda ruta nueva lleva los dos, con su prueba de 403 |
+| Funciones que no existen | La rama de HU08 importaba funciones que nunca se escribieron: la API no arrancaba | Correr `npm test` y `npm run dev` antes de subir: si no arranca, no se sube |
+| URL escrita a mano o llamadas sueltas | `localhost:3000` en HU02; `api.post(...)` directo en la pantalla | Agregar la función en `web/src/services/api.js` y usarla desde ahí |
+| Estilos sueltos | `style={{ color: 'green' }}` en la pantalla de caja | Clases de `web/src/index.css` (`.aviso-ok`, `.alerta`, `.boton`) |
+| Validación incompleta | Un medio de pago inventado o un valor negativo daba 500 | `express-validator` en la ruta para cada campo, con mensaje en español |
+| Rama sin PR | La HU08 quedó subida pero sin Pull Request: no llegó al programa | Después del `push`, abrir el PR a `develop` y avisarle a Cristian |
+| Fusionar sin revisión | La HU07 entró con estos errores | Cristian fusiona solo después de revisar y de que pasen `npm test` y `npm run lint` |
+
+## 8. Cosas de la nube que ya nos pasaron
 
 - **Se usa siempre** https://lapampa-gastrobar.vercel.app. Los enlaces de vista previa de Vercel (con letras raras en el nombre) fallan por CORS.
 - Render gratis se duerme después de 15 minutos sin uso: la primera carga puede tardar hasta un minuto. No es un error.

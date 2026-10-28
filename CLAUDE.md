@@ -10,7 +10,7 @@ Equipo: **Cristian David Silva Grueso** (Product Owner, frontend) · **Esteban A
 
 - **Web y mobile-first.** Meseros, cajero y propietario usan el **navegador del celular** (no hay tablets). El propietario también puede usar un computador. No hay app nativa.
 - **Publicado en la nube con HTTPS** (Vercel para `/web`, Render para `/api` con `render.yaml`, MySQL en Aiven con SSL; guía en `docs/despliegue.md`): el cliente pide domicilios desde su casa.
-- **Mesas con nombre libre.** No hay mesas fijas: el mesero crea las mesas de la jornada con el nombre que quiera ("Terraza 2", "Barra"). Nombre único solo entre mesas activas. Una mesa con pedido abierto no se elimina; eliminar = desactivar. **Todos los meseros ven todas las mesas** (no solo las suyas).
+- **Mesas con nombre libre.** No hay mesas fijas: el mesero crea las mesas de la jornada con el nombre que quiera ("Terraza 2", "Barra"). Nombre único solo entre mesas activas. Una mesa con pedido abierto no se elimina; eliminar = desactivar. **Todos los meseros ven todas las mesas** (no solo las suyas). Quitar el único producto de un pedido lo **anula** y deja la mesa libre (con motivo).
 - **Domicilios por dos vías:** formulario web público (cliente, sin cuenta) o el cajero registra los que llegan por llamada/WhatsApp en el mismo formulario (`canal`: `web` | `telefono_whatsapp`).
 - **Pago de domicilios:** contra entrega o **transferencia anticipada**. Si es transferencia, el domicilio queda en `pendiente_pago` y **no pasa a preparación** hasta que el cajero confirma el pago. Estados: `pendiente_pago → recibido → en_preparacion → en_camino → entregado` (+ `cancelado` con motivo). Solo avanzan en orden.
 - **Propina** sugerida del 10 %, voluntaria (Ley 1935 de 2018): nunca se suma sin confirmación; va separada de la venta.
@@ -81,10 +81,10 @@ Variables en `web/src/index.css`; guía viva en `/estilo`. Mostaza `#E8B95E`, cr
 |---|---|---|
 | Sprint 0 (1 semana) | HT-01 repositorio + nube · HT-02 modelo de datos · HT-03 mockups + línea base | HT-01 publicado en https://lapampa-gastrobar.vercel.app (API https://lapampa-api.onrender.com, base en Aiven). HT-02 hecho. HT-03: mockups aprobados y línea base en `docs/linea-base.md`. Cerrado y pasado a `main` |
 | Sprint 1 | HU01 login por rol · HU02 carta · HU03 mesas · HU04 pedido por mesa | Publicadas y aprobadas por el propietario en la Review. Cerrado y pasado a `main` (v0.2). Acta de review y retro: `docs/sprints/sprint-1.md` |
-| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | En curso: HU05 primero |
-| Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | Por hacer |
+| Sprint 2 | HU05 modificar pedido · HU06 cuenta · HU07 pago · HU08 propina | Publicadas y aprobadas por el propietario en la Review. Cerrado y pasado a `main` (v0.3). Acta: `docs/sprints/sprint-2.md` |
+| Sprint 3 | HU09 formulario web · HU10 domicilios por llamada · HU11 seguimiento · HU16 impresión | En curso |
 | Sprint 4 | HU12 estado de mesas · HU13 reportes · HU14 más vendidos · HU15 comparativo | Por hacer |
 
-**Siguiente paso:** Sprint 2, empezando por HU05 (modificar pedido) sobre `api/src/models/pedido.model.js` y `web/src/pages/VerPedido.jsx`. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
+**Siguiente paso:** Sprint 3, empezando por HU09 (formulario web de domicilio, ruta pública `/pedir`) y HU10 (el cajero registra los domicilios que llegan por llamada o WhatsApp en el mismo formulario). Las tablas `cliente` y `domicilio` ya existen en `schema.sql`; el pedido de domicilio usa `canal = 'domicilio'` y el mismo `detalle_pedido`. Cada PR fusionado a `develop` se publica solo en Render y Vercel; si cambia `schema.sql` o `seed.sql`, correr `npm run db:nube --prefix api`.
 
 Documentos del proyecto (fuera del repo, versión vigente v5): trabajo de grado `Proyecto_Gastrobar_v5_limpio.docx` y `Scrum_LaPampa_Gastrobar_v5.docx`. Si un cambio de código altera una decisión de arriba, avisa para actualizar esos documentos.

@@ -16,10 +16,10 @@ router.use('/productos', require('./productos.routes'));
 router.use('/mesas', require('./mesas.routes'));
 router.use('/pedidos', require('./pedidos.routes'));
 
-// Permisos de los módulos que vienen en sprints siguientes. Quedan protegidos desde ya:
-// un mesero recibe 403 al intentar entrar a caja o a reportes (criterio de HU01).
-// Mientras el módulo no exista, los roles con permiso reciben 404.
-router.use('/caja', verificarToken, permitirRoles('propietario', 'cajero'));
+// La caja protege sus rutas en caja.routes.js (propietario y cajero).
+// Reportes viene en el Sprint 4, pero queda protegido desde ya: un mesero o un cajero
+// reciben 403 (criterio de HU01); mientras no exista, el propietario recibe 404.
+router.use('/caja', require('./caja.routes'));
 router.use('/reportes', verificarToken, permitirRoles('propietario'));
 
 module.exports = router;

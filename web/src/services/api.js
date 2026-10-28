@@ -148,4 +148,58 @@ export async function obtenerPedido(id) {
   return data;
 }
 
+// ---------- Modificar pedido (HU05) ----------
+// Cada una responde el pedido actualizado y `ajuste`: la tirilla que va a cocina.
+// items: [{ productoId, cantidad, nota }]
+export async function agregarAlPedido(pedidoId, items) {
+  const { data } = await api.post(`/pedidos/${pedidoId}/items`, { items });
+  return data;
+}
+
+// cambios: { cantidad?, nota?, motivo? } — bajar la cantidad exige motivo
+export async function cambiarLineaPedido(pedidoId, itemId, cambios) {
+  const { data } = await api.put(`/pedidos/${pedidoId}/items/${itemId}`, cambios);
+  return data;
+}
+
+// Si era el único producto, el pedido queda anulado y la mesa libre
+export async function quitarDelPedido(pedidoId, itemId, motivo) {
+  const { data } = await api.delete(`/pedidos/${pedidoId}/items/${itemId}`, { data: { motivo } });
+  return data;
+}
+
+// ---------- Cuenta (HU06) ----------
+// El pedido pasa a 'por cobrar' y responde con `cuenta`: el texto de la tirilla de caja
+export async function cerrarPedido(pedidoId) {
+  const { data } = await api.patch(`/pedidos/${pedidoId}/cerrar`);
+  return data;
+}
+
+// El cliente pidió algo más después de la cuenta: vuelve a 'abierto' (con motivo)
+export async function reabrirPedido(pedidoId, motivo) {
+  const { data } = await api.patch(`/pedidos/${pedidoId}/reabrir`, { motivo });
+  return data;
+}
+
+// Bandeja del cajero: [{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]
+export async function listarPorCobrar() {
+  const { data } = await api.get('/caja/por-cobrar');
+  return data;
+}
+
+// ---------- Cobro y propina (HU07, HU08) ----------
+// datos: { propina: { respuesta: 'aceptada' | 'modificada' | 'rechazada', valor? },
+//          pagos: [{ medio: 'efectivo' | 'tarjeta' | 'transferencia', valor, referencia? }] }
+// Responde el pedido pagado, con `pagos`, `propina` y `comprobante`.
+export async function cobrarPedido(pedidoId, datos) {
+  const { data } = await api.post(`/caja/pedidos/${pedidoId}/pagos`, datos);
+  return data;
+}
+
+// Cierre de caja de un día ('AAAA-MM-DD'; sin fecha, hoy en Colombia)
+export async function obtenerCierre(fecha) {
+  const { data } = await api.get('/caja/cierre', { params: fecha ? { fecha } : {} });
+  return data;
+}
+
 export default api;

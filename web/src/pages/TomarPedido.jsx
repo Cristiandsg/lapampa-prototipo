@@ -4,25 +4,30 @@ import Encabezado from '../components/Encabezado';
 import LineaCarta, { pesos } from '../components/LineaCarta';
 import { useSesion } from '../sesion/SesionContext';
 import {
+  agregarAlPedido,
   crearPedido,
   listarCategorias,
   listarMesas,
   listarProductos,
   mensajeDeError,
+  obtenerPedido,
 } from '../services/api';
 
 // "Mesa" → "mesa" sin tildes, para buscar "chumblun" y encontrar "Chumblún"
 const normalizar = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // HU04 — Tomar el pedido de una mesa libre (pantalla 3 de los mockups aprobados).
+// HU05 — Con `adicion`, la misma pantalla agrega productos a un pedido abierto
+// (ruta /pedidos/:id/agregar): a cocina va solo lo nuevo.
 // Solo se muestra lo que se puede pedir hoy: productos activos y no agotados.
-export default function TomarPedido() {
+export default function TomarPedido({ adicion = false }) {
   const { id } = useParams();
   const mesaId = Number(id);
   const navigate = useNavigate();
   const { usuario } = useSesion();
 
   const [mesa, setMesa] = useState(undefined); // undefined = cargando; null = no existe
+  const [pedido, setPedido] = useState(undefined); // solo en la adición
   const [categorias, setCategorias] = useState([]);
   const [productos, setProductos] = useState([]);
   // productoId → { cantidad, nota }
@@ -46,14 +51,20 @@ export default function TomarPedido() {
   useEffect(() => {
     (async () => {
       try {
-        const [mesas] = await Promise.all([listarMesas(), cargarCarta()]);
-        setMesa(mesas.find((m) => m.id === mesaId) ?? null);
+        if (adicion) {
+          const [actual] = await Promise.all([obtenerPedido(id), cargarCarta()]);
+          setPedido(actual);
+        } else {
+          const [mesas] = await Promise.all([listarMesas(), cargarCarta()]);
+          setMesa(mesas.find((m) => m.id === mesaId) ?? null);
+        }
       } catch (err) {
         setError(mensajeDeError(err));
         setMesa(null);
+        setPedido(null);
       }
     })();
-  }, [mesaId, cargarCarta]);
+  }, [adicion, id, mesaId, cargarCarta]);
 
   const cantidadDe = (pid) => lineas[pid]?.cantidad ?? 0;
 
@@ -95,17 +106,26 @@ export default function TomarPedido() {
     if (enviando || elegidos.length === 0) return;
     setError(null);
     setEnviando(true);
+    const items = elegidos.map((p) => ({
+      productoId: p.id,
+      cantidad: cantidadDe(p.id),
+      nota: lineas[p.id].nota?.trim() || null,
+    }));
     try {
-      const pedido = await crearPedido({
+      if (adicion) {
+        const actualizado = await agregarAlPedido(pedido.id, items);
+        navigate(`/pedidos/${pedido.id}`, {
+          replace: true,
+          state: { aviso: 'Adición enviada a cocina.', ajuste: actualizado.ajuste },
+        });
+        return;
+      }
+      const nuevo = await crearPedido({
         mesaId,
-        items: elegidos.map((p) => ({
-          productoId: p.id,
-          cantidad: cantidadDe(p.id),
-          nota: lineas[p.id].nota?.trim() || null,
-        })),
+        items,
         observaciones: observaciones.trim() || null,
       });
-      navigate(`/pedidos/${pedido.id}`, { replace: true, state: { recienEnviado: true } });
+      navigate(`/pedidos/${nuevo.id}`, { replace: true, state: { recienEnviado: true } });
     } catch (err) {
       setError(mensajeDeError(err));
       setEnviando(false);
@@ -119,16 +139,37 @@ export default function TomarPedido() {
     }
   }
 
-  if (mesa === undefined) {
+  const volverA = adicion ? `/pedidos/${id}` : '/mesas';
+  const etiquetaVolver = adicion ? 'Volver al pedido' : 'Volver a mesas';
+
+  if (adicion ? pedido === undefined : mesa === undefined) {
     return (
       <main className="pagina">
-        <Encabezado titulo="Pedido" volver volverA="/mesas" etiquetaVolver="Volver a mesas" />
+        <Encabezado titulo="Pedido" volver volverA={volverA} etiquetaVolver={etiquetaVolver} />
         <p className="nota">Cargando la carta…</p>
       </main>
     );
   }
 
-  if (mesa === null || mesa.pedido) {
+  if (adicion && (pedido === null || pedido.estado !== 'abierto')) {
+    return (
+      <main className="pagina">
+        <Encabezado titulo="Pedido" volver volverA={volverA} etiquetaVolver={etiquetaVolver} />
+        <section className="bloque centrado">
+          <p>
+            {pedido
+              ? `El pedido #${pedido.id} ya no está abierto: no se le pueden agregar productos.`
+              : error || 'El pedido no existe.'}
+          </p>
+          <Link to={pedido ? `/pedidos/${pedido.id}` : '/mesas'} className="boton">
+            {pedido ? 'Ver el pedido' : 'Volver a mesas'}
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  if (!adicion && (mesa === null || mesa.pedido)) {
     return (
       <main className="pagina">
         <Encabezado titulo="Pedido" volver volverA="/mesas" etiquetaVolver="Volver a mesas" />
@@ -156,11 +197,15 @@ export default function TomarPedido() {
   return (
     <main className="pagina con-pie">
       <Encabezado
-        titulo={mesa.nombre}
-        subtitulo={`Pedido nuevo · ${usuario.nombre}`}
+        titulo={adicion ? pedido.mesa : mesa.nombre}
+        subtitulo={
+          adicion
+            ? `Adición al pedido #${pedido.id} · ${usuario.nombre}`
+            : `Pedido nuevo · ${usuario.nombre}`
+        }
         volver
-        volverA="/mesas"
-        etiquetaVolver="Volver a mesas"
+        volverA={volverA}
+        etiquetaVolver={etiquetaVolver}
       />
 
       <div className="campo">
@@ -267,17 +312,19 @@ export default function TomarPedido() {
         </section>
       ))}
 
-      <div className="campo">
-        <label htmlFor="observaciones">Observaciones del pedido (opcional)</label>
-        <textarea
-          id="observaciones"
-          rows={2}
-          maxLength={255}
-          placeholder="Ej.: es un cumpleaños, traer todo junto"
-          value={observaciones}
-          onChange={(e) => setObservaciones(e.target.value)}
-        />
-      </div>
+      {!adicion && (
+        <div className="campo">
+          <label htmlFor="observaciones">Observaciones del pedido (opcional)</label>
+          <textarea
+            id="observaciones"
+            rows={2}
+            maxLength={255}
+            placeholder="Ej.: es un cumpleaños, traer todo junto"
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+          />
+        </div>
+      )}
 
       <footer className="pie-pedido">
         {error && (
@@ -293,6 +340,11 @@ export default function TomarPedido() {
                 : `${totalUnidades} ${totalUnidades === 1 ? 'producto' : 'productos'}`}
             </p>
             <p className="pie-total">{pesos.format(total)}</p>
+            {adicion && (
+              <p className="pie-cantidad">
+                Pedido completo: {pesos.format(pedido.subtotal + total)}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -300,7 +352,7 @@ export default function TomarPedido() {
             disabled={elegidos.length === 0 || enviando}
             onClick={enviar}
           >
-            {enviando ? 'Enviando…' : 'Enviar a cocina'}
+            {enviando ? 'Enviando…' : adicion ? 'Enviar adición' : 'Enviar a cocina'}
           </button>
         </div>
       </footer>

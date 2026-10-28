@@ -60,6 +60,8 @@ a {
   margin: 0 auto;
   padding: 0 16px 32px;
   display: grid;
+  /* minmax(0, 1fr): un texto largo sin saltos (subtítulo, comanda) no ensancha la página */
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 
@@ -756,6 +758,7 @@ details.categorias summary {
 }
 .pie-pedido-fila .boton {
   min-height: 52px;
+  white-space: nowrap;
   padding: 0 24px;
   font-size: 1.05rem;
 }
@@ -805,6 +808,228 @@ details summary {
     ui-monospace,
     monospace;
   white-space: pre;
+}
+
+/* ---------- Modificar pedido (HU05) ---------- */
+.linea-pedido {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+}
+.linea-pedido > .carta-linea {
+  grid-column: 1 / -1;
+}
+.linea-pedido > small {
+  grid-column: 1;
+}
+.linea-pedido > .boton.chico {
+  grid-column: 2;
+}
+.fila-cantidad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+}
+.boton-redondo:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.chips-motivo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.total-hoja {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.hoja {
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.historial {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.historial li {
+  display: grid;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--mostaza);
+  font-size: 0.92rem;
+}
+.historial-quien {
+  font-size: 0.8rem;
+  color: var(--cafe-suave);
+}
+.historial-motivo {
+  font-weight: 600;
+  color: var(--achiote);
+}
+
+/* ---------- Caja (HU06) ---------- */
+.lista-cuentas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.cuenta-caja {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 14px;
+  min-height: var(--tactil);
+  border: 1px solid var(--linea);
+  border-left: 5px solid var(--achiote);
+  border-radius: var(--radio);
+  background: var(--papel);
+  color: var(--cafe);
+  text-decoration: none;
+}
+.cuenta-caja:active {
+  background: var(--crema);
+}
+.cuenta-mesa {
+  font-weight: 700;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.cuenta-total {
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.cuenta-detalle {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  color: var(--cafe-suave);
+}
+
+/* ---------- Cobro y cierre de caja (HU07, HU08) ---------- */
+.cobro {
+  display: grid;
+  gap: 20px;
+}
+.pago-campos {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+.campo-pesos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid var(--linea);
+  border-radius: 12px;
+  background: var(--papel);
+  padding-left: 14px;
+  font-weight: 700;
+}
+.campo-pesos:focus-within {
+  border-color: var(--cafe);
+}
+.campo .campo-pesos input {
+  border: none;
+  background: transparent;
+  padding-left: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.campo .campo-pesos input:focus {
+  outline: none;
+}
+.opciones-propina {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.opcion-propina {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 2px solid var(--linea);
+  border-radius: 14px;
+  background: var(--papel);
+  color: var(--cafe);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.opcion-propina span {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.opcion-propina[aria-pressed='true'] {
+  border-color: var(--cafe);
+  background: var(--cafe);
+  color: var(--papel);
+}
+.resumen-cobro {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.resumen-cobro > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.resumen-cobro dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.resumen-cobro small {
+  color: var(--cafe-suave);
+}
+.resumen-cobro .resumen-total {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 2px solid var(--cafe);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.vueltas {
+  margin: 6px 0 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--crema);
+}
+.vueltas-valor {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--hoja);
+}
+.cifra-grande {
+  text-align: center;
+  font: 900 2.2rem var(--titulo);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0;
+}
+.lista-propinas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.lista-propinas small {
+  color: var(--cafe-suave);
 }
 
 @media (min-width: 560px) {

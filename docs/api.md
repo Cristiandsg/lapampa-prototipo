@@ -45,8 +45,15 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | DELETE | `/mesas/:id` | Mesero, propietario | Desactiva la mesa (no la borra). 409 si tiene pedido abierto |
 | POST | `/mesas/quitar-libres` | Mesero, propietario | Al cerrar la jornada: desactiva todas las mesas libres y responde `{ cantidad }` |
 | POST | `/pedidos` | Mesero, propietario | `{ mesaId, items: [{ productoId, cantidad (1-99), nota? }], observaciones? }`. Responde el pedido con número (`id`), hora, mesero, detalle y `comanda`. 409 si la mesa ya tiene pedido o un producto está agotado o desactivado; 400 sin productos |
-| GET | `/pedidos/:id` | Con sesión | Pedido con mesa, mesero, detalle (precio guardado en el momento del pedido), total y comanda |
-| * | `/caja/...` | Propietario, cajero | Se construye en el Sprint 2 (hoy: 403 para el mesero, 404 para los demás) |
+| GET | `/pedidos/:id` | Con sesión | Pedido con mesa, mesero, detalle (precio guardado en el momento del pedido), total, comanda e `historial` (quién, qué, cuándo y motivo) |
+| POST | `/pedidos/:id/items` | Mesero, propietario | `{ items: [{ productoId, cantidad (1-99), nota? }] }`: agrega productos a un pedido abierto. Responde el pedido actualizado y `ajuste` (la tirilla de "ADICIÓN" para cocina). 409 si el pedido no está abierto o un producto está agotado |
+| PUT | `/pedidos/:id/items/:itemId` | Mesero, propietario | Cualquiera de `{ cantidad, nota }`, más `motivo` (3 a 150 caracteres), obligatorio si baja la cantidad. Responde el pedido y `ajuste` (`null` si no cambió nada) |
+| DELETE | `/pedidos/:id/items/:itemId` | Mesero, propietario | `{ motivo }` obligatorio. Quita la línea; si era la única, el pedido queda `cancelado` y la mesa `libre`. 404 si la línea ya no está en el pedido |
+| PATCH | `/pedidos/:id/cerrar` | Mesero, propietario, cajero | Cierra el pedido y genera la cuenta: pedido y mesa pasan a `por_cobrar` y la cuenta queda en la cola de la impresora de caja. Responde el pedido con `cuenta` (texto de la tirilla). 409 si no está abierto |
+| PATCH | `/pedidos/:id/reabrir` | Mesero, propietario, cajero | `{ motivo }` obligatorio. Devuelve un pedido `por_cobrar` a `abierto` (el cliente pidió algo más). 409 si no está por cobrar o ya tiene pagos |
+| GET | `/caja/por-cobrar` | Propietario, cajero | Bandeja del cajero: `[{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]`, la más antigua primero. El mesero recibe 403 |
+| POST | `/caja/pedidos/:id/pagos` | Propietario, cajero | `{ propina: { respuesta: 'aceptada' \| 'modificada' \| 'rechazada', valor? }, pagos: [{ medio, valor, referencia? }] }` (1 a 3 pagos, un medio por pago, valores enteros en pesos). Cobra el pedido: responde 201 con el pedido `pagado`, sus `pagos`, `propina` y `comprobante`. 400 si los pagos no suman consumo + propina; 409 si no está por cobrar |
+| GET | `/caja/cierre?fecha=AAAA-MM-DD` | Propietario, cajero | Cierre de caja del día (sin fecha: hoy en Colombia): `{ fecha, pedidosPagados, consumo, propinas: { total, porMesero }, porMedio, totalRecaudado, porCobrar }` |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
 ## Reglas de la carta (HU02)
@@ -67,6 +74,38 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Si dos meseros abren la misma mesa a la vez, uno espera al otro y el segundo recibe 409.
 - El número del pedido es su `id` (consecutivo). Las líneas con el mismo producto y la misma nota se juntan.
 - La conexión a la base trabaja en hora de Colombia (`SET time_zone = '-05:00'` en `api/src/config/db.js`).
+
+## Reglas para modificar un pedido (HU05)
+
+- Solo se modifica un pedido `abierto`. Con la cuenta generada (`por_cobrar`), pagado o anulado responde 409.
+- Todo lo que está en el pedido ya se envió a cocina: bajar una cantidad o quitar un producto **exige el motivo**. Subir una cantidad o agregar productos no lo pide.
+- Cada cambio deja en la cola de cocina (`trabajo_impresion`, tipo `ajuste_comanda`) una tirilla con **solo lo que cambió**: `ADICIÓN`, `ANULAR`, `CAMBIO` (nota) o `PEDIDO ANULADO`, con quién lo hizo y el motivo.
+- Una adición se suma a la línea que tenga el mismo producto, la misma nota y el mismo precio. Si el precio de la carta cambió, va en otra línea con el precio nuevo.
+- Quitar el único producto anula el pedido y deja la mesa libre (decisión del PO: el cliente se fue sin consumir).
+- Cada cambio queda en `historial_cambio` (`agregar_item`, `cambiar_item`, `quitar_item`, `anular`) con el antes, el después, el motivo y el usuario.
+- Bloqueo: mesa y luego pedido con `SELECT ... FOR UPDATE`, en el mismo orden que HU03 y HU04. Si dos celulares cambian el mismo pedido a la vez, el segundo espera y trabaja sobre el pedido ya actualizado (si la línea ya no existe, recibe 404).
+
+## Reglas de la cuenta (HU06)
+
+- Todo pedido trae `cuenta` (el texto de la tirilla de caja) y `propina_sugerida`. En un pedido abierto, la cuenta es la vista previa.
+- Al cerrar, el subtotal se recalcula del detalle: la cuenta siempre cuadra con lo que hay en el pedido, incluidos los cambios de HU05.
+- La cuenta dice "CUENTA" y "Este documento no es factura" (la facturación electrónica DIAN está fuera del alcance).
+- La propina sugerida es el 10 % del subtotal y va **aparte**: la cuenta dice que es voluntaria (Ley 1935 de 2018) y nunca se suma al total. El cliente la decide al pagar (HU08).
+- Después de generar la cuenta el pedido no admite cambios. Si el cliente pide algo más, se **reabre** con motivo (queda en el historial), siempre que no tenga pagos.
+- Si dos celulares generan la cuenta a la vez, sale una sola (el segundo recibe 409).
+
+## Reglas del cobro y la propina (HU07, HU08)
+
+- Solo se cobra un pedido `por_cobrar`, bloqueado con `SELECT ... FOR UPDATE`: dos cajeros no lo cobran dos veces.
+- La propina **nunca se suma sola**: el cajero marca la respuesta del cliente. `aceptada` = 10 % del consumo; `modificada` = el valor que diga el cliente (mayor que 0 y no más que el consumo); `rechazada` = 0. Queda en la tabla `propina` con el mesero que tomó el pedido (a quién se le liquida) y el cajero que la confirmó.
+- Los pagos (efectivo, tarjeta, transferencia, combinados) tienen que sumar **exactamente** consumo + propina; si no cuadran, 400 y no se guarda nada. Las vueltas del efectivo se calculan en pantalla y no se registran como pago.
+- Todo va en una transacción: propina, pagos, pedido `pagado`, mesa `libre`, historial (`pagar`) y comprobante en la cola de la impresora de caja.
+- Quién cobra sale de la sesión (`req.usuario`), nunca del cuerpo de la petición.
+- El cierre usa el día de Colombia (la conexión trabaja en `-05:00`) y filtra por rango de fechas para usar los índices. Lo recaudado = consumo + propinas; las propinas son de los meseros, no venta del gastrobar.
+
+## Concurrencia en las transacciones de pedidos
+
+Las transacciones de `pedido.model.js` corren en `READ COMMITTED`: después de esperar el bloqueo de la mesa, cada lectura ve lo último confirmado. En `REPEATABLE READ` (lo normal en MySQL) una transacción que esperó seguía viendo el pedido como estaba antes de esperar (por ejemplo, contaba 0 productos y anulaba un pedido al que otro celular le acababa de agregar algo).
 
 ## Reglas de las cuentas
 

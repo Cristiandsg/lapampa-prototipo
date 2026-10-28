@@ -6,6 +6,9 @@ import Panel from './pages/Panel';
 import Usuarios from './pages/Usuarios';
 import Carta from './pages/Carta';
 import Mesas from './pages/Mesas';
+import Caja from './pages/Caja';
+import Cobrar from './pages/Cobrar';
+import Cierre from './pages/Cierre';
 import TomarPedido from './pages/TomarPedido';
 import VerPedido from './pages/VerPedido';
 import Inicio from './pages/Inicio';
@@ -53,10 +56,42 @@ export default function App() {
           }
         />
         <Route
+          path="/caja"
+          element={
+            <RequiereSesion roles={['cajero', 'propietario']}>
+              <Caja />
+            </RequiereSesion>
+          }
+        />
+        <Route
+          path="/caja/cobrar/:id"
+          element={
+            <RequiereSesion roles={['cajero', 'propietario']}>
+              <Cobrar />
+            </RequiereSesion>
+          }
+        />
+        <Route
+          path="/caja/cierre"
+          element={
+            <RequiereSesion roles={['cajero', 'propietario']}>
+              <Cierre />
+            </RequiereSesion>
+          }
+        />
+        <Route
           path="/mesas/:id/pedido"
           element={
             <RequiereSesion roles={['mesero', 'propietario']}>
               <TomarPedido />
+            </RequiereSesion>
+          }
+        />
+        <Route
+          path="/pedidos/:id/agregar"
+          element={
+            <RequiereSesion roles={['mesero', 'propietario']}>
+              <TomarPedido adicion />
             </RequiereSesion>
           }
         />
