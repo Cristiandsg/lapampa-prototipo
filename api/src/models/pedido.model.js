@@ -614,4 +614,15 @@ module.exports = {
   reabrir,
   listarPorCobrar,
   cobrar,
+  // Piezas que reutiliza el pedido a domicilio (HU09, domicilio.model.js): el mismo
+  // agrupado de líneas, la misma revisión de la carta, la misma transacción y la misma cola.
+  interno: {
+    error,
+    agrupar,
+    productosDisponibles,
+    enTransaccion,
+    registrarHistorial,
+    encolarImpresion,
+    leer,
+  },
 };

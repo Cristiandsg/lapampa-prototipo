@@ -38,15 +38,22 @@ function hora(fecha) {
   });
 }
 
-// pedido: { id, mesa, mesero, creado_en, observaciones, items: [{ cantidad, nombre, nota }] }
+// Encabezado de la tirilla: la mesa, o DOMICILIO si el pedido llegó por ese canal (HU09).
+function destino(pedido) {
+  return pedido.canal === 'domicilio' || !pedido.mesa
+    ? '*** DOMICILIO ***'
+    : `MESA: ${pedido.mesa}`.slice(0, ANCHO);
+}
+
+// pedido: { id, canal, mesa, mesero, creado_en, observaciones, items: [{ cantidad, nombre, nota }] }
 function armarComanda(pedido) {
   const filas = [
     centrar('LA PAMPA - COCINA'),
     linea('='),
-    `MESA: ${pedido.mesa}`.slice(0, ANCHO),
+    destino(pedido),
     `Pedido #${pedido.id}`,
     `Hora: ${hora(pedido.creado_en)}`,
-    `Mesero: ${pedido.mesero}`.slice(0, ANCHO),
+    ...(pedido.mesero ? [`Mesero: ${pedido.mesero}`.slice(0, ANCHO)] : []),
     linea(),
   ];
   for (const item of pedido.items) {
@@ -122,10 +129,10 @@ function armarCuenta(pedido, fecha = pedido.cerrado_en || new Date()) {
     centrar('LA PAMPA GASTROBAR'),
     linea('='),
     centrar('CUENTA'),
-    `MESA: ${pedido.mesa}`.slice(0, ANCHO),
+    destino(pedido),
     `Pedido #${pedido.id}`,
     `Fecha: ${hora(fecha)}`,
-    `Atendió: ${pedido.mesero}`.slice(0, ANCHO),
+    ...(pedido.mesero ? [`Atendió: ${pedido.mesero}`.slice(0, ANCHO)] : []),
     linea(),
   ];
   for (const item of pedido.items) {

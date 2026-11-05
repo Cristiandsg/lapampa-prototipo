@@ -15,6 +15,8 @@ router.use('/categorias', require('./categorias.routes'));
 router.use('/productos', require('./productos.routes'));
 router.use('/mesas', require('./mesas.routes'));
 router.use('/pedidos', require('./pedidos.routes'));
+// HU09: /domicilios/publico/* no pide sesión (el cliente pide desde su casa)
+router.use('/domicilios', require('./domicilios.routes'));
 
 // La caja protege sus rutas en caja.routes.js (propietario y cajero).
 // Reportes viene en el Sprint 4, pero queda protegido desde ya: un mesero o un cajero
