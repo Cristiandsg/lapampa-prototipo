@@ -202,4 +202,22 @@ export async function obtenerCierre(fecha) {
   return data;
 }
 
+// ---------- Domicilios (HU09) — formulario público, sin sesión ----------
+// { categorias: [{ id, nombre, productos: [{ id, nombre, descripcion, precio }] }],
+//   valorEnvio, whatsapp, transferencia: { banco, tipo, numero, titular } }
+export async function cartaDomicilio() {
+  const { data } = await api.get('/domicilios/publico/carta');
+  return data;
+}
+
+// datos: { autorizaDatos: true, items: [{ productoId, cantidad, nota }],
+//          cliente: { nombre, telefono, direccion, barrio, referencia },
+//          metodoPago: 'contra_entrega' | 'transferencia', observaciones }
+// Responde { pedidoId, estado, items, subtotal, valorEnvio, total, pago } (pago solo si es
+// transferencia: a dónde consignar y el WhatsApp para el comprobante).
+export async function enviarDomicilio(datos) {
+  const { data } = await api.post('/domicilios/publico', datos);
+  return data;
+}
+
 export default api;
