@@ -1,0 +1,14 @@
+{
+  "name": "lapampa-agente-impresion",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Agente de impresión de La Pampa (HU16): saca por las impresoras térmicas del local las comandas y cuentas que deja la API en la cola",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

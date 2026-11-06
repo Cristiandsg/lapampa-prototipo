@@ -12,3 +12,7 @@ coverage/
 !.vscode/settings.json
 .idea/
 .claude/settings.local.json
+
+# Agente de impresión (HU16): tirillas del modo prueba y su estado local
+agente-impresion/tirillas/
+agente-impresion/impresas-sin-confirmar.json
