@@ -13,9 +13,10 @@ import TomarPedido from './pages/TomarPedido';
 import VerPedido from './pages/VerPedido';
 import Inicio from './pages/Inicio';
 import GuiaEstilo from './pages/GuiaEstilo';
+import PedirDomicilio from './pages/PedirDomicilio';
 
-// Las rutas de cada módulo se agregan sprint a sprint (mesas, carta, caja, domicilios, reportes)
-// y la ruta pública /pedir para el formulario de domicilio del cliente (Sprint 3).
+// Las rutas de cada módulo se agregan sprint a sprint (mesas, carta, caja, domicilios, reportes).
+// /pedir es pública: el cliente pide a domicilio desde su casa sin cuenta (HU09).
 export default function App() {
   return (
     <SesionProvider>
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/ingresar" element={<Ingreso />} />
         <Route path="/estado" element={<Inicio />} />
         <Route path="/estilo" element={<GuiaEstilo />} />
+        <Route path="/pedir" element={<PedirDomicilio />} />
         <Route
           path="/"
           element={

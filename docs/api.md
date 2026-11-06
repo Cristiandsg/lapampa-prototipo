@@ -54,6 +54,8 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | GET | `/caja/por-cobrar` | Propietario, cajero | Bandeja del cajero: `[{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]`, la más antigua primero. El mesero recibe 403 |
 | POST | `/caja/pedidos/:id/pagos` | Propietario, cajero | `{ propina: { respuesta: 'aceptada' \| 'modificada' \| 'rechazada', valor? }, pagos: [{ medio, valor, referencia? }] }` (1 a 3 pagos, un medio por pago, valores enteros en pesos). Cobra el pedido: responde 201 con el pedido `pagado`, sus `pagos`, `propina` y `comprobante`. 400 si los pagos no suman consumo + propina; 409 si no está por cobrar |
 | GET | `/caja/cierre?fecha=AAAA-MM-DD` | Propietario, cajero | Cierre de caja del día (sin fecha: hoy en Colombia): `{ fecha, pedidosPagados, consumo, propinas: { total, porMesero }, porMedio, totalRecaudado, porCobrar }` |
+| GET | `/domicilios/publico/carta` | Público | Carta que se puede pedir hoy, agrupada por categoría (`{ categorias: [{ id, nombre, productos: [{ id, nombre, descripcion, precio }] }], valorEnvio, whatsapp, transferencia: { banco, tipo, numero, titular } }`). Solo datos públicos |
+| POST | `/domicilios/publico` | Público (máx. 5 por hora por dispositivo) | `{ autorizaDatos: true, items: [{ productoId, cantidad (1-99), nota? }], cliente: { nombre, telefono, direccion, barrio?, referencia? }, metodoPago: 'contra_entrega' \| 'transferencia', observaciones? }`. Responde 201 con `{ pedidoId, domicilioId, estado, metodoPago, items, subtotal, valorEnvio, total, pago }` (`pago` = datos de la cuenta y WhatsApp, solo si es transferencia). 400 sin autorización, sin productos o con datos inválidos; 409 si un producto está agotado o salió de la carta; 429 si pasó el límite |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
 ## Reglas de la carta (HU02)
@@ -102,6 +104,16 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Todo va en una transacción: propina, pagos, pedido `pagado`, mesa `libre`, historial (`pagar`) y comprobante en la cola de la impresora de caja.
 - Quién cobra sale de la sesión (`req.usuario`), nunca del cuerpo de la petición.
 - El cierre usa el día de Colombia (la conexión trabaja en `-05:00`) y filtra por rango de fechas para usar los índices. Lo recaudado = consumo + propinas; las propinas son de los meseros, no venta del gastrobar.
+
+## Reglas del formulario web de domicilio (HU09)
+
+- Es público: no pide inicio de sesión. El pedido queda con `canal = 'domicilio'` (sin mesa ni mesero) y el domicilio con `canal = 'web'` y `registrado_por = NULL`. En el historial, `usuario_id = NULL` significa que lo hizo el cliente.
+- **Sin la autorización de datos no se recibe el pedido** (Ley 1581 de 2012): `autorizaDatos` tiene que ser exactamente `true`. El cliente se guarda con la fecha y el medio de la autorización (`formulario_web`). El texto de la autorización y de la política está en `web/src/components/PoliticaDatos.jsx` y en [politica-datos.md](politica-datos.md) (borrador pendiente de aprobación).
+- El cliente se reconoce por su celular: si vuelve a pedir, se actualizan sus datos y su autorización, sin duplicarlo (lo reutiliza la búsqueda por teléfono de HU10). El celular se guarda con sus 10 dígitos, sin espacios ni `+57`: `3xxxxxxxxx` o fijo `60xxxxxxxx`.
+- **Por transferencia** el domicilio queda en `pendiente_pago` y **no va a cocina**: la comanda sale cuando el cajero confirme el pago (HU11). **Contra entrega** queda en `recibido` y la comanda entra de una vez en la cola de cocina, encabezada con `*** DOMICILIO ***`.
+- Todo va en una transacción: cliente, pedido, detalle con el precio del momento, domicilio con el valor del envío del momento, historial y comanda. Si un producto se agotó, no queda nada guardado (ni el cliente).
+- El valor del envío (fijo, $7.000 por ahora), el WhatsApp del local y los datos de la cuenta salen de `api/src/config/negocio.js` y se pueden cambiar con variables de entorno (`VALOR_ENVIO`, `WHATSAPP_LOCAL`, `TRANSFERENCIA_*`) sin tocar el código.
+- **Límite por dispositivo:** máximo 5 pedidos registrados por hora desde la misma IP (`LIMITE_PEDIDOS_HORA`); el sexto recibe 429 con `Retry-After`. Los formularios con errores no gastan intentos. El conteo vive en memoria: se reinicia si Render duerme la API. Varias personas en el mismo Wi-Fi comparten la IP.
 
 ## Concurrencia en las transacciones de pedidos
 

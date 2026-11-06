@@ -1032,6 +1032,46 @@ details summary {
   color: var(--cafe-suave);
 }
 
+/* ---------- Formulario público de domicilio (HU09) ---------- */
+.resumen-domicilio {
+  margin-top: 14px;
+}
+.nota-pago {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--cafe-suave);
+}
+/* Casilla de autorización de datos: toda la fila se puede tocar */
+.autorizacion {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 2px solid var(--linea);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.autorizacion:has(input:checked) {
+  border-color: var(--hoja);
+  background: #e3ead7;
+}
+.autorizacion input {
+  width: 24px;
+  height: 24px;
+  margin: 2px 0 0;
+  accent-color: var(--hoja);
+}
+.politica {
+  display: grid;
+  gap: 10px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--cafe);
+}
+
 @media (min-width: 560px) {
   .usuario {
     grid-template-columns: 1fr auto;
