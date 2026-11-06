@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Franja from '../components/Franja';
+import Encabezado from '../components/Encabezado';
 import LineaCarta, { pesos } from '../components/LineaCarta';
-import PoliticaDatos, { TEXTO_AUTORIZACION } from '../components/PoliticaDatos';
-import { cartaDomicilio, enviarDomicilio, mensajeDeError } from '../services/api';
+import PoliticaDatos, {
+  TEXTO_AUTORIZACION,
+  TEXTO_AUTORIZACION_CAJERO,
+} from '../components/PoliticaDatos';
+import {
+  buscarClientePorTelefono,
+  cartaDomicilio,
+  enviarDomicilio,
+  mensajeDeError,
+  registrarDomicilio,
+} from '../services/api';
 
 // "Chumblún" → "chumblun", para buscar sin tildes
 const normalizar = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -19,7 +29,12 @@ const CLIENTE_VACIO = { nombre: '', telefono: '', direccion: '', barrio: '', ref
 // 2. los datos de entrega, el método de pago y la autorización de datos (Ley 1581);
 // 3. la confirmación con el número de pedido y, si paga por transferencia, a dónde consignar
 //    y el botón para mandar el comprobante por WhatsApp.
-export default function PedirDomicilio() {
+//
+// HU10 — Con `cajero`, es la misma pantalla para el cajero (ruta /domicilios/nuevo, con
+// sesión): registra los pedidos que llegan por llamada o WhatsApp. Lo primero que escribe es
+// el celular, y si el cliente ya está registrado sus datos se cargan solos. La casilla dice
+// que el cliente dio la autorización, y la confirmación trae la cuenta para dictársela.
+export default function PedirDomicilio({ cajero = false }) {
   const [carta, setCarta] = useState(undefined); // undefined = cargando; null = error
   const [paso, setPaso] = useState('carta');
   // productoId → { cantidad, nota }
@@ -32,6 +47,8 @@ export default function PedirDomicilio() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
   const [confirmado, setConfirmado] = useState(null);
+  // HU10: resultado de buscar el celular { estado: 'buscando' | 'encontrado' | 'nuevo' | 'error', mensaje }
+  const [clienteBuscado, setClienteBuscado] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -83,6 +100,65 @@ export default function PedirDomicilio() {
 
   const cambiarCliente = (campo) => (e) => setCliente((c) => ({ ...c, [campo]: e.target.value }));
 
+  // El cliente ve la franja de la carta; el cajero, el encabezado de las pantallas internas
+  const cabecera = (titulo, subtitulo) =>
+    cajero ? (
+      <Encabezado titulo="Registrar domicilio" volver subtitulo={subtitulo} />
+    ) : (
+      <Franja titulo={titulo} subtitulo={subtitulo} />
+    );
+
+  // HU10: al completar un celular válido se busca el cliente y, si existe, se cargan sus datos
+  async function cambiarTelefono(e) {
+    const telefono = e.target.value;
+    setCliente((c) => ({ ...c, telefono }));
+    if (!cajero) return;
+    if (!telefonoValido(telefono)) {
+      setClienteBuscado(null);
+      return;
+    }
+    setClienteBuscado({ estado: 'buscando', mensaje: 'Buscando el cliente…' });
+    try {
+      const encontrado = await buscarClientePorTelefono(limpiarTelefono(telefono));
+      setCliente({
+        nombre: encontrado.nombre,
+        telefono: encontrado.telefono,
+        direccion: encontrado.direccion,
+        barrio: encontrado.barrio ?? '',
+        referencia: encontrado.referencia ?? '',
+      });
+      const fecha = new Date(encontrado.autorizacionFecha).toLocaleDateString('es-CO');
+      const medio =
+        encontrado.autorizacionMedio === 'formulario_web'
+          ? 'en el formulario web'
+          : 'por llamada o WhatsApp';
+      setClienteBuscado({
+        estado: 'encontrado',
+        mensaje: `Cliente registrado: se cargaron sus datos. Autorizó el tratamiento de datos el ${fecha} ${medio}. Confirma la dirección con el cliente.`,
+      });
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setClienteBuscado({ estado: 'nuevo', mensaje: 'Cliente nuevo: escribe sus datos.' });
+      } else {
+        setClienteBuscado({ estado: 'error', mensaje: mensajeDeError(err) });
+      }
+    }
+  }
+
+  function registrarOtro() {
+    setPaso('carta');
+    setLineas({});
+    setBusqueda('');
+    setCliente(CLIENTE_VACIO);
+    setMetodoPago(null);
+    setObservaciones('');
+    setAutoriza(false);
+    setEnviando(false);
+    setError(null);
+    setConfirmado(null);
+    setClienteBuscado(null);
+  }
+
   const faltantes = [
     cliente.nombre.trim().length < 2 && 'tu nombre',
     !telefonoValido(cliente.telefono) && 'un celular de 10 dígitos',
@@ -97,7 +173,8 @@ export default function PedirDomicilio() {
     setError(null);
     setEnviando(true);
     try {
-      const respuesta = await enviarDomicilio({
+      const registrar = cajero ? registrarDomicilio : enviarDomicilio;
+      const respuesta = await registrar({
         autorizaDatos: true,
         items: elegidos.map((p) => ({
           productoId: p.id,
@@ -137,7 +214,7 @@ export default function PedirDomicilio() {
   if (carta === undefined) {
     return (
       <main className="pagina">
-        <Franja subtitulo="Pide a domicilio" />
+        {cabecera(undefined, 'Pide a domicilio')}
         <p className="nota" role="status">
           Cargando la carta… La primera vez puede tardar hasta un minuto.
         </p>
@@ -148,7 +225,7 @@ export default function PedirDomicilio() {
   if (carta === null) {
     return (
       <main className="pagina">
-        <Franja subtitulo="Pide a domicilio" />
+        {cabecera(undefined, 'Pide a domicilio')}
         <section className="bloque centrado">
           <p role="alert">{error}</p>
           <button
@@ -168,19 +245,52 @@ export default function PedirDomicilio() {
   }
 
   if (paso === 'confirmado') {
-    return <Confirmacion pedido={confirmado} whatsapp={carta.whatsapp} />;
+    return (
+      <Confirmacion
+        pedido={confirmado}
+        whatsapp={carta.whatsapp}
+        cajero={cajero}
+        onOtro={registrarOtro}
+      />
+    );
   }
 
   if (paso === 'datos') {
+    const telefonoCampo = (
+      <div className="campo">
+        <label htmlFor="telefono">Celular</label>
+        <input
+          id="telefono"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          placeholder="3001234567"
+          maxLength={20}
+          value={cliente.telefono}
+          onChange={cambiarTelefono}
+          aria-describedby="ayuda-telefono"
+        />
+        <small id="ayuda-telefono">
+          {cajero
+            ? 'Escríbelo primero: si el cliente ya pidió antes, sus datos se cargan solos.'
+            : 'Te llamamos aquí si hay alguna novedad.'}
+        </small>
+        {clienteBuscado && (
+          <p className={clienteBuscado.estado === 'encontrado' ? 'aviso-ok' : 'nota'} role="status">
+            {clienteBuscado.mensaje}
+          </p>
+        )}
+      </div>
+    );
     return (
       <main className="pagina">
-        <Franja titulo="Tus datos" subtitulo="Para llevarte el pedido" />
+        {cabecera('Tus datos', cajero ? 'Datos del cliente' : 'Para llevarte el pedido')}
 
         <form className="formulario" onSubmit={enviar} noValidate>
           <section className="bloque" aria-labelledby="t-resumen">
             <div className="fila-titulo">
               <h2 id="t-resumen" className="seccion-titulo">
-                Tu pedido
+                {cajero ? 'Pedido' : 'Tu pedido'}
               </h2>
               <button
                 type="button"
@@ -223,6 +333,7 @@ export default function PedirDomicilio() {
             <h2 id="t-entrega" className="seccion-titulo">
               Entrega
             </h2>
+            {cajero && telefonoCampo}
             <div className="campo">
               <label htmlFor="nombre">Nombre</label>
               <input
@@ -233,21 +344,7 @@ export default function PedirDomicilio() {
                 onChange={cambiarCliente('nombre')}
               />
             </div>
-            <div className="campo">
-              <label htmlFor="telefono">Celular</label>
-              <input
-                id="telefono"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel-national"
-                placeholder="3001234567"
-                maxLength={20}
-                value={cliente.telefono}
-                onChange={cambiarCliente('telefono')}
-                aria-describedby="ayuda-telefono"
-              />
-              <small id="ayuda-telefono">Te llamamos aquí si hay alguna novedad.</small>
-            </div>
+            {!cajero && telefonoCampo}
             <div className="campo">
               <label htmlFor="direccion">Dirección</label>
               <input
@@ -293,7 +390,7 @@ export default function PedirDomicilio() {
 
           <section className="bloque" aria-labelledby="t-pago">
             <h2 id="t-pago" className="seccion-titulo">
-              ¿Cómo vas a pagar?
+              {cajero ? '¿Cómo va a pagar?' : '¿Cómo vas a pagar?'}
             </h2>
             <div className="opciones-propina" role="group" aria-labelledby="t-pago">
               <button
@@ -303,7 +400,7 @@ export default function PedirDomicilio() {
                 onClick={() => setMetodoPago('contra_entrega')}
               >
                 <strong>Contra entrega</strong>
-                <span>Pagas al recibir</span>
+                <span>{cajero ? 'Paga al recibir' : 'Pagas al recibir'}</span>
               </button>
               <button
                 type="button"
@@ -317,15 +414,16 @@ export default function PedirDomicilio() {
             </div>
             {metodoPago === 'transferencia' && (
               <p className="nota-pago">
-                Te mostramos la cuenta al enviar el pedido. Lo empezamos a preparar cuando nos
-                llegue tu comprobante por WhatsApp.
+                {cajero
+                  ? 'Al registrarlo te mostramos la cuenta para dictársela. No pasa a cocina hasta que se confirme el pago.'
+                  : 'Te mostramos la cuenta al enviar el pedido. Lo empezamos a preparar cuando nos llegue tu comprobante por WhatsApp.'}
               </p>
             )}
           </section>
 
           <section className="bloque" aria-labelledby="t-datos">
             <h2 id="t-datos" className="seccion-titulo">
-              Tus datos personales
+              {cajero ? 'Datos personales del cliente' : 'Tus datos personales'}
             </h2>
             <label className="autorizacion">
               <input
@@ -333,7 +431,7 @@ export default function PedirDomicilio() {
                 checked={autoriza}
                 onChange={(e) => setAutoriza(e.target.checked)}
               />
-              <span>{TEXTO_AUTORIZACION}</span>
+              <span>{cajero ? TEXTO_AUTORIZACION_CAJERO : TEXTO_AUTORIZACION}</span>
             </label>
             <details>
               <summary>Leer la política de tratamiento de datos</summary>
@@ -352,7 +450,9 @@ export default function PedirDomicilio() {
             </p>
           )}
           <button type="submit" className="boton ancho" disabled={faltantes.length > 0 || enviando}>
-            {enviando ? 'Enviando…' : `Enviar pedido · ${pesos.format(subtotal + envio)}`}
+            {enviando
+              ? 'Enviando…'
+              : `${cajero ? 'Registrar domicilio' : 'Enviar pedido'} · ${pesos.format(subtotal + envio)}`}
           </button>
         </form>
       </main>
@@ -361,7 +461,7 @@ export default function PedirDomicilio() {
 
   return (
     <main className="pagina con-pie">
-      <Franja subtitulo="Pide a domicilio" />
+      {cabecera(undefined, cajero ? 'Pedido por llamada o WhatsApp' : 'Pide a domicilio')}
 
       {error && (
         <p className="alerta" role="alert">
@@ -504,31 +604,35 @@ export default function PedirDomicilio() {
 }
 
 // Paso 3 — El pedido ya quedó registrado
-function Confirmacion({ pedido, whatsapp }) {
+function Confirmacion({ pedido, whatsapp, cajero, onOtro }) {
   const porTransferencia = pedido.metodoPago === 'transferencia';
   const mensaje = `Hola, envío el comprobante de la transferencia del pedido #${pedido.pedidoId} por ${pesos.format(pedido.total)}.`;
   const enlaceWhatsapp = `https://wa.me/57${whatsapp}?text=${encodeURIComponent(mensaje)}`;
 
   return (
     <main className="pagina">
-      <Franja titulo="¡Pedido recibido!" subtitulo="Gracias por pedir en La Pampa" />
+      {cajero ? (
+        <Encabezado titulo="Domicilio registrado" volver />
+      ) : (
+        <Franja titulo="¡Pedido recibido!" subtitulo="Gracias por pedir en La Pampa" />
+      )}
 
       <section className="bloque centrado" aria-labelledby="t-numero">
         <h2 id="t-numero" className="seccion-titulo">
-          Tu número de pedido
+          {cajero ? 'Número de pedido' : 'Tu número de pedido'}
         </h2>
         <p className="cifra-grande">#{pedido.pedidoId}</p>
         <p>Total a pagar: {pesos.format(pedido.total)}</p>
         <small className="nota">
-          Incluye {pesos.format(pedido.valorEnvio)} del envío. Guarda este número por si nos
-          escribes.
+          Incluye {pesos.format(pedido.valorEnvio)} del envío.{' '}
+          {cajero ? 'Díctale este número al cliente.' : 'Guarda este número por si nos escribes.'}
         </small>
       </section>
 
       {porTransferencia ? (
         <section className="bloque formulario" aria-labelledby="t-transferencia">
           <h2 id="t-transferencia" className="seccion-titulo">
-            Paga por transferencia
+            {cajero ? 'Cuenta para dictarle al cliente' : 'Paga por transferencia'}
           </h2>
           <dl className="resumen-cobro">
             <div>
@@ -554,25 +658,35 @@ function Confirmacion({ pedido, whatsapp }) {
               <dd>{pesos.format(pedido.total)}</dd>
             </div>
           </dl>
-          <p className="alerta">
-            Tu pedido queda pendiente de pago: lo empezamos a preparar cuando nos envíes el
-            comprobante por WhatsApp y lo confirmemos.
-          </p>
-          <a className="boton ancho" href={enlaceWhatsapp} target="_blank" rel="noreferrer">
-            Enviar comprobante por WhatsApp
-          </a>
-          <p className="nota">WhatsApp del local: {whatsapp}</p>
+          {cajero ? (
+            <p className="alerta">
+              Queda pendiente de pago y no pasa a cocina. Pídele al cliente el comprobante por
+              WhatsApp al {whatsapp}.
+            </p>
+          ) : (
+            <>
+              <p className="alerta">
+                Tu pedido queda pendiente de pago: lo empezamos a preparar cuando nos envíes el
+                comprobante por WhatsApp y lo confirmemos.
+              </p>
+              <a className="boton ancho" href={enlaceWhatsapp} target="_blank" rel="noreferrer">
+                Enviar comprobante por WhatsApp
+              </a>
+              <p className="nota">WhatsApp del local: {whatsapp}</p>
+            </>
+          )}
         </section>
       ) : (
         <p className="aviso-ok">
-          Ya lo estamos preparando. Pagas {pesos.format(pedido.total)} cuando te llegue: ten el
-          efectivo listo o avísanos si necesitas cambio.
+          {cajero
+            ? `La comanda ya va para cocina. El cliente paga ${pesos.format(pedido.total)} al recibir.`
+            : `Ya lo estamos preparando. Pagas ${pesos.format(pedido.total)} cuando te llegue: ten el efectivo listo o avísanos si necesitas cambio.`}
         </p>
       )}
 
       <section className="bloque" aria-labelledby="t-detalle">
         <h2 id="t-detalle" className="seccion-titulo">
-          Lo que pediste
+          {cajero ? 'Lo que pidió' : 'Lo que pediste'}
         </h2>
         <ul className="carta">
           {pedido.items.map((i) => (
@@ -585,6 +699,12 @@ function Confirmacion({ pedido, whatsapp }) {
           ))}
         </ul>
       </section>
+
+      {cajero && (
+        <button type="button" className="boton ancho" onClick={onOtro}>
+          Registrar otro domicilio
+        </button>
+      )}
     </main>
   );
 }

@@ -131,7 +131,7 @@ describe('Menú según el rol (HU01)', () => {
     conSesion('cajero');
     abrir('/');
     await screen.findByRole('heading', { name: 'Hola, Cajero' });
-    expect(opcionesVisibles()).toEqual(['Caja', 'Domicilios']);
+    expect(opcionesVisibles()).toEqual(['Caja', 'Registrar domicilio', 'Domicilios']);
   });
 
   it('el propietario ve todo y puede entrar a Usuarios', async () => {
@@ -142,6 +142,7 @@ describe('Menú según el rol (HU01)', () => {
       'Mesas y pedidos',
       'Carta',
       'Caja',
+      'Registrar domicilio',
       'Domicilios',
       'Reportes',
       'Usuarios',

@@ -56,6 +56,8 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | GET | `/caja/cierre?fecha=AAAA-MM-DD` | Propietario, cajero | Cierre de caja del día (sin fecha: hoy en Colombia): `{ fecha, pedidosPagados, consumo, propinas: { total, porMesero }, porMedio, totalRecaudado, porCobrar }` |
 | GET | `/domicilios/publico/carta` | Público | Carta que se puede pedir hoy, agrupada por categoría (`{ categorias: [{ id, nombre, productos: [{ id, nombre, descripcion, precio }] }], valorEnvio, whatsapp, transferencia: { banco, tipo, numero, titular } }`). Solo datos públicos |
 | POST | `/domicilios/publico` | Público (máx. 5 por hora por dispositivo) | `{ autorizaDatos: true, items: [{ productoId, cantidad (1-99), nota? }], cliente: { nombre, telefono, direccion, barrio?, referencia? }, metodoPago: 'contra_entrega' \| 'transferencia', observaciones? }`. Responde 201 con `{ pedidoId, domicilioId, estado, metodoPago, items, subtotal, valorEnvio, total, pago }` (`pago` = datos de la cuenta y WhatsApp, solo si es transferencia). 400 sin autorización, sin productos o con datos inválidos; 409 si un producto está agotado o salió de la carta; 429 si pasó el límite |
+| GET | `/domicilios/clientes?telefono=` | cajero, propietario | HU10: datos de un cliente ya registrado `{ id, nombre, telefono, direccion, barrio, referencia, autorizacionFecha, autorizacionMedio }`. Acepta el celular con espacios o `+57`. 404 si es un cliente nuevo; 400 si el celular no es válido |
+| POST | `/domicilios` | cajero, propietario | HU10: registra un domicilio que llegó por llamada o WhatsApp. Mismo cuerpo, validaciones y respuesta que `POST /domicilios/publico`, pero queda con `canal = 'telefono_whatsapp'`, `registrado_por` = quien está en sesión y autorización con medio `telefono_whatsapp`. Sin límite de envíos |
 | * | `/reportes/...` | Propietario | Se construye en el Sprint 4 (hoy: 403 para mesero y cajero, 404 para el propietario) |
 
 ## Reglas de la carta (HU02)
@@ -114,6 +116,12 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 - Todo va en una transacción: cliente, pedido, detalle con el precio del momento, domicilio con el valor del envío del momento, historial y comanda. Si un producto se agotó, no queda nada guardado (ni el cliente).
 - El valor del envío (fijo, $7.000 por ahora), el WhatsApp del local y los datos de la cuenta salen de `api/src/config/negocio.js` y se pueden cambiar con variables de entorno (`VALOR_ENVIO`, `WHATSAPP_LOCAL`, `TRANSFERENCIA_*`) sin tocar el código.
 - **Límite por dispositivo:** máximo 5 pedidos registrados por hora desde la misma IP (`LIMITE_PEDIDOS_HORA`); el sexto recibe 429 con `Retry-After`. Los formularios con errores no gastan intentos. El conteo vive en memoria: se reinicia si Render duerme la API. Varias personas en el mismo Wi-Fi comparten la IP.
+
+### Domicilios por llamada o WhatsApp (HU10)
+
+- El cajero usa la misma pantalla del formulario web en `/domicilios/nuevo` (opción "Registrar domicilio" del menú del cajero y del propietario). Lo primero que escribe es el celular: si el cliente ya existe, sus datos se cargan solos con `GET /domicilios/clientes`.
+- La casilla dice que **el cliente autorizó** el tratamiento de sus datos por llamada o WhatsApp. Sin marcarla, la API responde 400 y no guarda nada. La autorización se renueva en cada pedido (fecha y medio).
+- La misma función del modelo (`domicilio.model.js → crear`) registra los dos canales: cambia solo `canal` y `registradoPor`. Por transferencia queda en `pendiente_pago` sin comanda; la confirmación le muestra al cajero la cuenta para dictársela.
 
 ## Concurrencia en las transacciones de pedidos
 
