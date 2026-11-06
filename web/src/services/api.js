@@ -191,6 +191,19 @@ export async function listarPorCobrar() {
 // datos: { propina: { respuesta: 'aceptada' | 'modificada' | 'rechazada', valor? },
 //          pagos: [{ medio: 'efectivo' | 'tarjeta' | 'transferencia', valor, referencia? }] }
 // Responde el pedido pagado, con `pagos`, `propina` y `comprobante`.
+// ---------- Impresión (HU16) ----------
+// { cocina: { pendientes, conError, segundosEsperando, ultimoError, agenteConectado }, caja: {…} }
+export async function estadoImpresion() {
+  const { data } = await api.get('/impresion/estado');
+  return data;
+}
+
+// tipo: 'comanda' | 'cuenta' | 'comprobante'. La tirilla sale marcada como REIMPRESIÓN.
+export async function reimprimir(pedidoId, tipo) {
+  const { data } = await api.post('/impresion/reimprimir', { pedidoId, tipo });
+  return data;
+}
+
 export async function cobrarPedido(pedidoId, datos) {
   const { data } = await api.post(`/caja/pedidos/${pedidoId}/pagos`, datos);
   return data;

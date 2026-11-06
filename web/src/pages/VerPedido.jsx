@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import AvisoImpresion from '../components/AvisoImpresion';
 import Encabezado from '../components/Encabezado';
 import Hoja from '../components/Hoja';
 import HojaLinea from '../components/HojaLinea';
 import LineaCarta, { pesos } from '../components/LineaCarta';
+import Reimprimir from '../components/Reimprimir';
 import { useSesion } from '../sesion/SesionContext';
 import { cerrarPedido, mensajeDeError, obtenerPedido, reabrirPedido } from '../services/api';
 
@@ -193,6 +195,8 @@ export default function VerPedido() {
         {...volver}
       />
 
+      <AvisoImpresion />
+
       {aviso && (
         <p className="aviso-ok" role="status">
           {aviso === 'recien-enviado'
@@ -281,10 +285,8 @@ export default function VerPedido() {
           <pre className="tirilla" aria-label="Cuenta">
             {pedido.cuenta}
           </pre>
-          <p className="nota">
-            Sale por la impresora de caja cuando esté conectada al sistema. El cobro se registra en
-            Caja.
-          </p>
+          <p className="nota">Sale sola por la impresora de caja. El cobro se registra en Caja.</p>
+          <Reimprimir pedidoId={pedido.id} tipo="cuenta" etiqueta="Reimprimir la cuenta" />
           <button
             type="button"
             className="boton secundario ancho"
@@ -313,7 +315,8 @@ export default function VerPedido() {
           <pre className="tirilla" aria-label="Comanda de cocina">
             {pedido.comanda}
           </pre>
-          <p className="nota">Sale por la impresora de cocina cuando esté conectada al sistema.</p>
+          <p className="nota">Sale sola por la impresora de cocina.</p>
+          <Reimprimir pedidoId={pedido.id} tipo="comanda" etiqueta="Reimprimir la comanda" />
         </details>
       )}
 

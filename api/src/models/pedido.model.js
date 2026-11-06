@@ -71,11 +71,12 @@ async function registrarHistorial(conexion, pedidoId, accion, usuarioId, datos =
 // Cola de impresión (HU16): la comanda y sus ajustes van a cocina; la cuenta, a caja.
 async function encolarImpresion(conexion, tipo, pedidoId, contenido, usuarioId) {
   const impresora = tipo === 'cuenta' || tipo === 'comprobante' ? 'caja' : 'cocina';
-  await conexion.query(
+  const [r] = await conexion.query(
     `INSERT INTO trabajo_impresion (tipo, impresora, pedido_id, contenido, solicitado_por)
      VALUES (?, ?, ?, ?, ?)`,
     [tipo, impresora, pedidoId, contenido, usuarioId],
   );
+  return r.insertId; // HU16: id del trabajo, para reimprimir
 }
 
 // Corre `trabajo` dentro de una transacción y libera la conexión pase lo que pase.
@@ -614,4 +615,15 @@ module.exports = {
   reabrir,
   listarPorCobrar,
   cobrar,
+  // Piezas que reutiliza el pedido a domicilio (HU09, domicilio.model.js): el mismo
+  // agrupado de líneas, la misma revisión de la carta, la misma transacción y la misma cola.
+  interno: {
+    error,
+    agrupar,
+    productosDisponibles,
+    enTransaccion,
+    registrarHistorial,
+    encolarImpresion,
+    leer,
+  },
 };

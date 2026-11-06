@@ -69,3 +69,9 @@ Si la contraseña de Aiven se expone (por ejemplo, en una captura), se cambia en
 ## Después
 
 Cada vez que se integra un PR a `develop`, Render y Vercel vuelven a publicar solos. Si un cambio toca `schema.sql` o `seed.sql`, hay que correr otra vez `npm run db:nube --prefix api` (borra los datos de la nube).
+
+## Impresión (HU16)
+
+1. En Render, en *Environment* de `lapampa-api`, agrega `CLAVE_AGENTE_IMPRESION` con una clave larga (mínimo 16 caracteres, por ejemplo la que sale de `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`). No se sube a GitHub.
+2. En el PC de la caja instala el agente siguiendo [agente-impresion/README.md](../agente-impresion/README.md), con esa misma clave en `CLAVE_AGENTE`.
+3. Mientras el agente no esté instalado, las tirillas se quedan en la cola y la pantalla del pedido avisa que la impresora no está conectada; salen todas en orden cuando el agente arranque.

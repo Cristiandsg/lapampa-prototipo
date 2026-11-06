@@ -35,3 +35,6 @@ services:
         value: 12h
       - key: CORS_ORIGEN
         sync: false
+      # HU16: clave del agente de impresión del PC de la caja (mínimo 16 caracteres)
+      - key: CLAVE_AGENTE_IMPRESION
+        sync: false
