@@ -20,6 +20,9 @@ router.use('/pedidos', require('./pedidos.routes'));
 // Reportes viene en el Sprint 4, pero queda protegido desde ya: un mesero o un cajero
 // reciben 403 (criterio de HU01); mientras no exista, el propietario recibe 404.
 router.use('/caja', require('./caja.routes'));
+// HU16: /impresion/pendientes y PATCH /impresion/:id los usa el agente con su clave;
+// /impresion/estado y /impresion/reimprimir, el personal con su sesión.
+router.use('/impresion', require('./impresion.routes'));
 router.use('/reportes', verificarToken, permitirRoles('propietario'));
 
 module.exports = router;
