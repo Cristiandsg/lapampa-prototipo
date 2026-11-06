@@ -243,7 +243,7 @@ describe('Validaciones del formulario', () => {
   it('sin productos → 400', async () => {
     const res = await enviar(pedidoBase({ items: [] }));
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('Agrega al menos un producto a tu pedido.');
+    expect(res.body.error).toBe('Agrega al menos un producto al pedido.');
   });
 
   it('un producto agotado hoy → 409, y no queda ni el cliente ni el pedido', async () => {
