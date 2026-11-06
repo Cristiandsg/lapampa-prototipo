@@ -51,6 +51,10 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 | DELETE | `/pedidos/:id/items/:itemId` | Mesero, propietario | `{ motivo }` obligatorio. Quita la línea; si era la única, el pedido queda `cancelado` y la mesa `libre`. 404 si la línea ya no está en el pedido |
 | PATCH | `/pedidos/:id/cerrar` | Mesero, propietario, cajero | Cierra el pedido y genera la cuenta: pedido y mesa pasan a `por_cobrar` y la cuenta queda en la cola de la impresora de caja. Responde el pedido con `cuenta` (texto de la tirilla). 409 si no está abierto |
 | PATCH | `/pedidos/:id/reabrir` | Mesero, propietario, cajero | `{ motivo }` obligatorio. Devuelve un pedido `por_cobrar` a `abierto` (el cliente pidió algo más). 409 si no está por cobrar o ya tiene pagos |
+| GET | `/impresion/pendientes?impresora=` | Agente (`X-Clave-Agente`) | HU16: trabajos `pendiente` o `error` en orden de llegada (máx. 20), opcionalmente de una impresora (`cocina` o `caja`): `[{ id, tipo, impresora, pedidoId, contenido, estado, intentos, ultimoError, creadoEn }]`. 401 con clave equivocada; 503 si el servidor no tiene `CLAVE_AGENTE_IMPRESION` |
+| PATCH | `/impresion/:id` | Agente (`X-Clave-Agente`) | HU16: `{ estado: 'impreso' }` o `{ estado: 'error', error }`. Marcar impreso es idempotente; un error no saca de `impreso`. 404 si no existe |
+| GET | `/impresion/estado` | mesero, cajero, propietario | HU16: por impresora `{ pendientes, conError, segundosEsperando, ultimoError, agenteConectado }` (el agente cuenta como conectado si consultó en los últimos 30 s) |
+| POST | `/impresion/reimprimir` | comanda y cuenta: mesero, cajero, propietario · comprobante: cajero, propietario | HU16: `{ pedidoId, tipo }` vuelve a encolar la tirilla con el encabezado `*** REIMPRESIÓN ***`, a nombre de quien la pidió. 409 si todavía no existe (cuenta sin generar, comprobante sin pagar, pedido sin productos) |
 | GET | `/caja/por-cobrar` | Propietario, cajero | Bandeja del cajero: `[{ id, mesa, mesero, subtotal, productos, cerrado_en, minutos }]`, la más antigua primero. El mesero recibe 403 |
 | POST | `/caja/pedidos/:id/pagos` | Propietario, cajero | `{ propina: { respuesta: 'aceptada' \| 'modificada' \| 'rechazada', valor? }, pagos: [{ medio, valor, referencia? }] }` (1 a 3 pagos, un medio por pago, valores enteros en pesos). Cobra el pedido: responde 201 con el pedido `pagado`, sus `pagos`, `propina` y `comprobante`. 400 si los pagos no suman consumo + propina; 409 si no está por cobrar |
 | GET | `/caja/cierre?fecha=AAAA-MM-DD` | Propietario, cajero | Cierre de caja del día (sin fecha: hoy en Colombia): `{ fecha, pedidosPagados, consumo, propinas: { total, porMesero }, porMedio, totalRecaudado, porCobrar }` |
@@ -106,6 +110,13 @@ router.post('/', verificarToken, permitirRoles('propietario', 'cajero'), control
 ## Concurrencia en las transacciones de pedidos
 
 Las transacciones de `pedido.model.js` corren en `READ COMMITTED`: después de esperar el bloqueo de la mesa, cada lectura ve lo último confirmado. En `REPEATABLE READ` (lo normal en MySQL) una transacción que esperó seguía viendo el pedido como estaba antes de esperar (por ejemplo, contaba 0 productos y anulaba un pedido al que otro celular le acababa de agregar algo).
+
+## Impresión de comandas y cuentas (HU16)
+
+- La API no imprime: deja cada tirilla en `trabajo_impresion` (comanda y ajustes → cocina; cuenta y comprobante → caja) y el **agente de impresión** del PC de la caja (`agente-impresion/`, ver su README) la saca por la impresora en ESC/POS.
+- El agente se identifica con su propia clave (`CLAVE_AGENTE_IMPRESION` en Render, encabezado `X-Clave-Agente`), no con un usuario. El token de una persona no sirve en sus rutas.
+- Nada se pierde: si la impresora falla, el trabajo queda en `error` con el motivo y se reintenta hasta que salga. Nada se duplica: solo se marca `impreso` después de imprimir, la confirmación es idempotente y el agente recuerda lo impreso sin confirmar aunque se reinicie.
+- La pantalla del pedido y la de Caja muestran un aviso si una impresora tiene errores o si hay tirillas esperando más de 30 s, e incluyen los botones **Reimprimir** (comanda, cuenta y comprobante).
 
 ## Reglas de las cuentas
 
