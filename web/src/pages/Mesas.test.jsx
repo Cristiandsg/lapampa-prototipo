@@ -7,6 +7,8 @@ import * as api from '../services/api';
 
 vi.mock('../services/api', async (original) => ({
   ...(await original()),
+  // HU16: el aviso de impresión no consulta ninguna API real durante las pruebas
+  estadoImpresion: vi.fn(async () => ({})),
   quienSoy: vi.fn(),
   listarMesas: vi.fn(),
   crearMesa: vi.fn(),

@@ -1055,3 +1055,14 @@ details summary {
     animation: none !important;
   }
 }
+
+/* ---------- Impresión (HU16) ---------- */
+.reimprimir {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.avisos-impresion {
+  display: grid;
+  gap: 8px;
+}

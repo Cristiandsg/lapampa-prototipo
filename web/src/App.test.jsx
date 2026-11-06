@@ -7,6 +7,8 @@ import * as api from './services/api';
 
 vi.mock('./services/api', async (original) => ({
   ...(await original()),
+  // HU16: el aviso de impresión no consulta ninguna API real durante las pruebas
+  estadoImpresion: vi.fn(async () => ({})),
   obtenerSalud: vi.fn().mockResolvedValue({ estado: 'ok', baseDeDatos: 'conectada' }),
   iniciarSesion: vi.fn(),
   quienSoy: vi.fn(),

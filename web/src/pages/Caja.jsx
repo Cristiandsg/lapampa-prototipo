@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Encabezado from '../components/Encabezado';
+import AvisoImpresion from '../components/AvisoImpresion';
+import Reimprimir from '../components/Reimprimir';
 import { pesos } from '../components/LineaCarta';
 import { listarPorCobrar, mensajeDeError } from '../services/api';
 
@@ -22,6 +24,7 @@ export default function Caja() {
   const [cuentas, setCuentas] = useState(null);
   const [error, setError] = useState(null);
   const [aviso] = useState(state?.aviso ?? null);
+  const [pagadoId] = useState(state?.pagadoId ?? null); // HU16: para reimprimir su comprobante
 
   // El aviso de "pago registrado" es de una sola vez
   useEffect(() => {
@@ -51,10 +54,15 @@ export default function Caja() {
     <main className="pagina">
       <Encabezado titulo="Caja" volver />
 
+      <AvisoImpresion />
+
       {aviso && (
         <p className="aviso-ok" role="status">
           {aviso}
         </p>
+      )}
+      {pagadoId && (
+        <Reimprimir pedidoId={pagadoId} tipo="comprobante" etiqueta="Reimprimir el comprobante" />
       )}
 
       {error && (

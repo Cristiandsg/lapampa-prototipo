@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Encabezado from '../components/Encabezado';
+import Reimprimir from '../components/Reimprimir';
 import LineaCarta, { pesos } from '../components/LineaCarta';
 import { cobrarPedido, mensajeDeError, obtenerPedido } from '../services/api';
 
@@ -91,6 +92,13 @@ export default function Cobrar() {
           <Link to={`/pedidos/${pedido.id}`} className="boton">
             Ver el pedido
           </Link>
+          {pedido.estado === 'pagado' && (
+            <Reimprimir
+              pedidoId={pedido.id}
+              tipo="comprobante"
+              etiqueta="Reimprimir el comprobante"
+            />
+          )}
         </section>
       </main>
     );
@@ -136,6 +144,7 @@ export default function Cobrar() {
       navigate('/caja', {
         state: {
           aviso: `Pedido #${cobrado.id} cobrado: ${pesos.format(cobrado.subtotal + (cobrado.propina?.valor ?? 0))}.${mesa}`,
+          pagadoId: cobrado.id,
         },
       });
     } catch (err) {
