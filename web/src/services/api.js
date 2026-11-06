@@ -220,4 +220,18 @@ export async function enviarDomicilio(datos) {
   return data;
 }
 
+// ---------- Domicilios por llamada o WhatsApp (HU10) — cajero y propietario ----------
+// Mismo cuerpo que enviarDomicilio; queda con canal 'telefono_whatsapp' y el cajero de la sesión
+export async function registrarDomicilio(datos) {
+  const { data } = await api.post('/domicilios', datos);
+  return data;
+}
+
+// Datos de un cliente ya registrado, o 404 si es nuevo:
+// { id, nombre, telefono, direccion, barrio, referencia, autorizacionFecha, autorizacionMedio }
+export async function buscarClientePorTelefono(telefono) {
+  const { data } = await api.get('/domicilios/clientes', { params: { telefono } });
+  return data;
+}
+
 export default api;

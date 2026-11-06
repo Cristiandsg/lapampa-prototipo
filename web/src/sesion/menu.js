@@ -26,6 +26,14 @@ export const OPCIONES = [
     disponible: true,
   },
   {
+    ruta: '/domicilios/nuevo',
+    titulo: 'Registrar domicilio',
+    descripcion: 'Pedidos que llegan por llamada o WhatsApp',
+    roles: ['cajero', 'propietario'],
+    sprint: 3,
+    disponible: true,
+  },
+  {
     ruta: '/domicilios',
     titulo: 'Domicilios',
     descripcion: 'Pedidos a domicilio y su estado',

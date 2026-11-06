@@ -7,6 +7,10 @@
 export const TEXTO_AUTORIZACION =
   'Autorizo a La Pampa Gastro Bar a tratar mis datos personales (nombre, celular y dirección) para recibir, preparar y entregar mi pedido y para contactarme sobre él, según su política de tratamiento de datos.';
 
+// HU10: lo que confirma el cajero cuando el pedido llega por llamada o WhatsApp
+export const TEXTO_AUTORIZACION_CAJERO =
+  'El cliente autorizó a La Pampa Gastro Bar a tratar sus datos personales (nombre, celular y dirección) para recibir, preparar y entregar su pedido. Se lo pregunté por llamada o WhatsApp.';
+
 export default function PoliticaDatos({ whatsapp }) {
   return (
     <div className="politica">

@@ -1,6 +1,7 @@
 const { Router } = require('express');
-const { body } = require('express-validator');
+const { body, query } = require('express-validator');
 const validar = require('../middlewares/validar');
+const { verificarToken, permitirRoles } = require('../middlewares/autenticacion');
 const limitePedidos = require('../middlewares/limitePedidos');
 const domicilios = require('../controllers/domicilios.controller');
 
@@ -27,21 +28,15 @@ const texto = (campo, { min = 0, max, mensaje }) => {
     .withMessage(mensaje);
 };
 
-// ---------- HU09: formulario web de domicilio (público, sin inicio de sesión) ----------
-
-// La carta que se puede pedir hoy, con el valor del envío y los datos de pago
-router.get('/publico/carta', domicilios.cartaPublica);
-
-router.post(
-  '/publico',
-  limitePedidos,
+// Reglas de un domicilio, iguales para el formulario del cliente (HU09) y para el cajero
+// (HU10). Solo cambia el mensaje de la autorización: el cliente la marca él mismo; el cajero
+// confirma que el cliente la dio por teléfono o WhatsApp.
+const reglasDomicilio = (mensajeAutorizacion) => [
   // Ley 1581 de 2012: sin la autorización marcada no se recibe el pedido
   body('autorizaDatos')
     .custom((valor) => valor === true)
-    .withMessage('Para enviar el pedido debes autorizar el tratamiento de tus datos personales.'),
-  body('items')
-    .isArray({ min: 1, max: 100 })
-    .withMessage('Agrega al menos un producto a tu pedido.'),
+    .withMessage(mensajeAutorizacion),
+  body('items').isArray({ min: 1, max: 100 }).withMessage('Agrega al menos un producto al pedido.'),
   body('items.*.productoId')
     .isInt({ min: 1, max: MAX_ID })
     .withMessage('Uno de los productos no es válido.')
@@ -55,16 +50,16 @@ router.post(
     .isString()
     .isLength({ max: 120 })
     .withMessage('La nota de un producto puede tener máximo 120 caracteres.'),
-  body('cliente').isObject().withMessage('Escribe tus datos de entrega.'),
+  body('cliente').isObject().withMessage('Escribe los datos de entrega.'),
   texto('cliente.nombre', {
     min: 2,
     max: 80,
-    mensaje: 'Escribe tu nombre (de 2 a 80 caracteres).',
+    mensaje: 'Escribe el nombre (de 2 a 80 caracteres).',
   }),
   body('cliente.telefono')
     .customSanitizer(soloDigitos)
     .isString()
-    .withMessage('Escribe tu número de celular.')
+    .withMessage('Escribe el número de celular.')
     .bail()
     .matches(TELEFONO)
     .withMessage('Escribe un celular de 10 dígitos, por ejemplo 3001234567.'),
@@ -80,13 +75,56 @@ router.post(
   }),
   body('metodoPago')
     .isIn(['contra_entrega', 'transferencia'])
-    .withMessage('Escoge cómo vas a pagar: contra entrega o transferencia.'),
+    .withMessage('Escoge cómo va a pagar: contra entrega o transferencia.'),
   texto('observaciones', {
     max: 255,
     mensaje: 'Las observaciones pueden tener máximo 255 caracteres.',
   }),
   validar,
+];
+
+// ---------- HU09: formulario web de domicilio (público, sin inicio de sesión) ----------
+
+// La carta que se puede pedir hoy, con el valor del envío y los datos de pago
+router.get('/publico/carta', domicilios.cartaPublica);
+
+router.post(
+  '/publico',
+  limitePedidos,
+  ...reglasDomicilio(
+    'Para enviar el pedido debes autorizar el tratamiento de tus datos personales.',
+  ),
   domicilios.crearPublico,
+);
+
+// ---------- HU10: el cajero registra los que llegan por llamada o WhatsApp ----------
+
+const internas = [verificarToken, permitirRoles('cajero', 'propietario')];
+
+// Busca un cliente por su celular para no volver a pedirle los datos
+router.get(
+  '/clientes',
+  ...internas,
+  query('telefono')
+    .customSanitizer(soloDigitos)
+    .isString()
+    .withMessage('Escribe el celular del cliente.')
+    .bail()
+    .matches(TELEFONO)
+    .withMessage('Escribe un celular de 10 dígitos, por ejemplo 3001234567.'),
+  validar,
+  domicilios.buscarCliente,
+);
+
+// Mismo registro de HU09, con canal 'telefono_whatsapp' y el cajero que lo registró.
+// Sin límite de envíos: lo usa el personal con su sesión.
+router.post(
+  '/',
+  ...internas,
+  ...reglasDomicilio(
+    'Confirma que el cliente autorizó el tratamiento de sus datos personales antes de registrar el domicilio.',
+  ),
+  domicilios.crearPorTelefono,
 );
 
 module.exports = router;

@@ -1,3 +1,4 @@
+const pool = require('../config/db');
 const negocio = require('../config/negocio');
 const pedidoModel = require('./pedido.model');
 
@@ -154,4 +155,17 @@ function cartaPublica(productos) {
   };
 }
 
-module.exports = { crear, cartaPublica };
+// HU10 — Datos de un cliente por su celular, para no volver a pedirlos. Incluye cuándo y por
+// qué medio dio la autorización de datos, para que el cajero sepa si ya la tiene.
+async function buscarClientePorTelefono(telefono) {
+  const [filas] = await pool.query(
+    `SELECT id, nombre, telefono, direccion, barrio, referencia,
+            autorizacion_fecha AS autorizacionFecha, autorizacion_medio AS autorizacionMedio
+       FROM cliente
+      WHERE telefono = ?`,
+    [telefono],
+  );
+  return filas[0] || null;
+}
+
+module.exports = { crear, cartaPublica, buscarClientePorTelefono };

@@ -58,6 +58,14 @@ export default function App() {
           }
         />
         <Route
+          path="/domicilios/nuevo"
+          element={
+            <RequiereSesion roles={['cajero', 'propietario']}>
+              <PedirDomicilio cajero />
+            </RequiereSesion>
+          }
+        />
+        <Route
           path="/caja"
           element={
             <RequiereSesion roles={['cajero', 'propietario']}>
